@@ -20,6 +20,7 @@ import TakeQuiz from './pages/student/TakeQuiz';
 import QuizResult from './pages/student/QuizResult';
 import QuizHistory from './pages/student/QuizHistory';
 import StudentRecordings from './pages/student/StudentRecordings';
+import StudentAgenda from './pages/student/StudentAgenda';
 import StudentProfile from './pages/student/StudentProfile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import RegistrationRequests from './pages/admin/RegistrationRequests';
@@ -31,6 +32,7 @@ import QuizzesManagement from './pages/admin/QuizzesManagement';
 import QuizEditor from './pages/admin/QuizEditor';
 import ResultsManagement from './pages/admin/ResultsManagement';
 import RecordingsManagement from './pages/admin/RecordingsManagement';
+import SessionsManagement from './pages/admin/SessionsManagement';
 import ContactMessages from './pages/admin/ContactMessages';
 import AlertMessage from './components/AlertMessage';
 
@@ -67,6 +69,7 @@ export default function App() {
             <Route path="quizzes/:quizId/result" element={<QuizResult />} />
             <Route path="history" element={<QuizHistory />} />
             <Route path="recordings" element={<StudentRecordings />} />
+            <Route path="agenda" element={<StudentAgenda />} />
             <Route path="profile" element={<StudentProfile />} />
           </Route>
         </Route>
@@ -83,6 +86,7 @@ export default function App() {
             <Route path="quizzes/:quizId" element={<QuizEditor />} />
             <Route path="results" element={<ResultsManagement />} />
             <Route path="recordings" element={<RecordingsManagement />} />
+            <Route path="agenda" element={<SessionsManagement />} />
             <Route path="messages" element={<ContactMessages />} />
           </Route>
         </Route>

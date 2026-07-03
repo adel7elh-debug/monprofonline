@@ -184,6 +184,41 @@ export const recordings = [
   },
 ];
 
+export const sessions = [
+  {
+    id: 'session-1',
+    title: 'Séance 1 - cadrage économie',
+    description: 'Présentation des attentes du concours et rappel des notions essentielles.',
+    subject_id: 'subject-1',
+    pack_id: demoPack.id,
+    session_date: '2026-07-08',
+    start_time: '20:00',
+    end_time: '22:00',
+    meet_link: 'https://meet.google.com/demo-agenda',
+    replay_link: '',
+    status: 'scheduled',
+    is_visible: true,
+    subjects: subjects[0],
+    packs: demoPack,
+  },
+  {
+    id: 'session-2',
+    title: 'Méthodologie de préparation orale',
+    description: 'Travail sur la structure des réponses et la présentation du parcours.',
+    subject_id: 'subject-8',
+    pack_id: demoPack.id,
+    session_date: '2026-07-10',
+    start_time: '19:30',
+    end_time: '21:00',
+    meet_link: 'https://meet.google.com/demo-oral',
+    replay_link: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    status: 'scheduled',
+    is_visible: true,
+    subjects: subjects[7],
+    packs: demoPack,
+  },
+];
+
 export const registrationRequests = [
   {
     id: 'rr-1',
@@ -254,6 +289,7 @@ export const demoData = {
   quizzes,
   questions,
   recordings,
+  sessions,
   registrationRequests,
   contactMessages,
   attempts,

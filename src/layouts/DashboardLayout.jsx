@@ -3,6 +3,7 @@ import { Outlet, useOutletContext } from 'react-router-dom';
 import {
   BarChart3,
   BookOpen,
+  CalendarDays,
   ClipboardList,
   FileText,
   FolderKanban,
@@ -29,6 +30,7 @@ const studentItems = [
   { to: '/student/quizzes', label: 'QCM', icon: ClipboardList },
   { to: '/student/history', label: 'Historique QCM', icon: Trophy },
   { to: '/student/recordings', label: 'Enregistrements', icon: PlaySquare },
+  { to: '/student/agenda', label: 'Agenda', icon: CalendarDays },
   { to: '/student/profile', label: 'Profil', icon: Settings },
 ];
 
@@ -42,6 +44,7 @@ const adminItems = [
   { to: '/admin/quizzes', label: 'QCM', icon: ClipboardList },
   { to: '/admin/results', label: 'Résultats', icon: Trophy },
   { to: '/admin/recordings', label: 'Enregistrements', icon: PlaySquare },
+  { to: '/admin/agenda', label: 'Agenda', icon: CalendarDays },
   { to: '/admin/messages', label: 'Messages contact', icon: MessageSquare },
 ];
 

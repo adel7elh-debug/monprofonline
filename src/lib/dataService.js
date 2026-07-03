@@ -61,6 +61,47 @@ export const listAdminRecordings = () =>
     'recordings',
   );
 
+export const getSessions = () =>
+  safeSelect(
+    'sessions',
+    (q) => q.select('*, subjects(name), packs(name)').eq('is_visible', true).order('session_date').order('start_time'),
+    'sessions',
+  );
+
+export const getAdminSessions = () =>
+  safeSelect(
+    'sessions',
+    (q) => q.select('*, subjects(name), packs(name)').order('session_date').order('start_time'),
+    'sessions',
+  );
+
+export const getStudentSessions = async (activePackId) => {
+  if (!activePackId) return [];
+  if (!isSupabaseConfigured) {
+    return demoData.sessions.filter((session) => session.is_visible && session.pack_id === activePackId);
+  }
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('*, subjects(name), packs(name)')
+    .eq('is_visible', true)
+    .eq('pack_id', activePackId)
+    .order('session_date')
+    .order('start_time');
+
+  if (error) {
+    console.error('Supabase student sessions select failed:', {
+      activePackId,
+      error,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw error;
+  }
+  return data || [];
+};
+
 export const listRegistrationRequests = () =>
   safeSelect(
     'registration_requests',
@@ -226,6 +267,33 @@ export const deleteRow = async (table, id) => {
   const { error } = await supabase.from(table).delete().eq('id', id);
   if (error) throw error;
   return true;
+};
+
+export const createSession = async (sessionData) => {
+  try {
+    return await createRow('sessions', sessionData);
+  } catch (error) {
+    console.error('Supabase session insert failed:', error);
+    throw error;
+  }
+};
+
+export const updateSession = async (id, sessionData) => {
+  try {
+    return await updateRow('sessions', id, sessionData);
+  } catch (error) {
+    console.error('Supabase session update failed:', { id, error });
+    throw error;
+  }
+};
+
+export const deleteSession = async (id) => {
+  try {
+    return await deleteRow('sessions', id);
+  } catch (error) {
+    console.error('Supabase session delete failed:', { id, error });
+    throw error;
+  }
 };
 
 export const uploadDocumentPdf = async (file) => {

@@ -7,6 +7,13 @@ import { listAttempts, listDocuments, listQuizzes, listRecordings } from '../../
 import { formatDate } from '../../utils/formatDate';
 import AlertMessage from '../../components/AlertMessage';
 
+const statusLabels = {
+  active: 'Actif',
+  pending: 'En attente',
+  inactive: 'Inactif',
+  expired: 'Expiré',
+};
+
 export default function StudentDashboard() {
   const { profile } = useAuth();
   const outletContext = useOutletContext() || {};
@@ -23,7 +30,7 @@ export default function StudentDashboard() {
   if (!activePack) {
     return (
       <AlertMessage type="warning">
-        Pack actif introuvable. Merci de contacter l'administration.
+        Pack actif introuvable. Merci de contacter l’administration.
       </AlertMessage>
     );
   }
@@ -36,18 +43,18 @@ export default function StudentDashboard() {
     <div className="grid gap-6">
       <div>
         <h1 className="text-3xl font-black text-navy">Bonjour {profile?.full_name}</h1>
-        <p className="mt-1 text-slate-600">Votre espace de preparation Master.</p>
+        <p className="mt-1 text-slate-600">Votre espace de préparation Master.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[
           ['Pack actif', activePack?.packs?.name || 'Pack complet'],
-          ['Statut acces', profile?.access_status],
-          ['Debut acces', formatDate(activePack?.start_date)],
-          ['Fin acces', formatDate(activePack?.end_date)],
+          ['Statut d’accès', statusLabels[profile?.access_status] || profile?.access_status || '-'],
+          ['Début d’accès', formatDate(activePack?.start_date)],
+          ['Fin d’accès', formatDate(activePack?.end_date)],
           ['Supports', data.documents.length],
           ['QCM', data.quizzes.length],
           ['Enregistrements', data.recordings.length],
-          ['Derniere note', lastAttempt ? `${lastAttempt.score}/${lastAttempt.total_questions}` : '-'],
+          ['Dernière note', lastAttempt ? `${lastAttempt.score}/${lastAttempt.total_questions}` : '-'],
         ].map(([label, value]) => (
           <Card key={label} className="p-5">
             <p className="text-sm font-bold uppercase tracking-wide text-slate-500">{label}</p>
@@ -57,7 +64,7 @@ export default function StudentDashboard() {
       </div>
       <Card className="p-5">
         <div className="flex items-center justify-between">
-          <h2 className="font-black text-navy">Progression generale</h2>
+          <h2 className="font-black text-navy">Progression générale</h2>
           <span className="text-sm font-bold text-royal">{progression}%</span>
         </div>
         <div className="mt-4 h-3 rounded-full bg-slate-100">

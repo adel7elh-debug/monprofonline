@@ -34,7 +34,7 @@ export default function Sidebar({ items, title, onNavigate }) {
       <div className="border-t border-white/10 p-3">
         <Button variant="outline" className="w-full border-white/20 bg-white/10 text-white hover:bg-white/20" onClick={signOut}>
           <LogOut className="h-4 w-4" />
-          Deconnexion
+          Déconnexion
         </Button>
       </div>
     </aside>

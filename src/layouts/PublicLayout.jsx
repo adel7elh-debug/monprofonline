@@ -24,8 +24,8 @@ export default function PublicLayout() {
       <Outlet />
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-slate-600 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-          <p className="font-semibold text-navy">MonProf Online - Preparation Concours Master</p>
-          <p>Paiement gere manuellement hors plateforme.</p>
+          <p className="font-semibold text-navy">MonProf Online - Préparation aux concours de Master</p>
+          <p>Le paiement est géré manuellement hors plateforme.</p>
         </div>
       </footer>
     </div>

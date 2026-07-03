@@ -76,7 +76,7 @@ export default function TakeQuiz() {
         </div>
       </Card>
       <div className="mt-5 flex justify-between">
-        <Button variant="outline" disabled={current === 0} onClick={() => setCurrent((value) => value - 1)}>Precedent</Button>
+        <Button variant="outline" disabled={current === 0} onClick={() => setCurrent((value) => value - 1)}>Précédent</Button>
         {current < data.questions.length - 1 ? (
           <Button onClick={() => setCurrent((value) => value + 1)}>Suivant</Button>
         ) : (

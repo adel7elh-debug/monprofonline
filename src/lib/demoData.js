@@ -1,21 +1,21 @@
 export const demoPack = {
   id: 'pack-complet',
-  name: 'Pack Complet Preparation Master',
+  name: 'Pack complet Préparation Master',
   price: 1300,
   description:
-    'Preparation ecrite et orale avec supports PDF, annales corrigees, QCM et accompagnement personnalise.',
+    'Préparation écrite et orale avec supports PDF, annales corrigées, QCM et accompagnement personnalisé.',
   is_active: true,
 };
 
 export const subjects = [
-  'Economie generale',
+  'Économie générale',
   'Management',
   'Finance',
   'Marketing',
-  'Comptabilite',
-  'Methodologie',
-  'Culture generale economique',
-  'Preparation orale',
+  'Comptabilité',
+  'Méthodologie',
+  'Culture générale économique',
+  'Préparation orale',
 ].map((name, index) => ({
   id: `subject-${index + 1}`,
   name,
@@ -62,8 +62,8 @@ export const studentPacks = [
 export const documents = [
   {
     id: 'doc-1',
-    title: 'Resume economie generale',
-    description: 'Concepts essentiels et syntheses rapides.',
+    title: 'Résumé d’économie générale',
+    description: 'Concepts essentiels et synthèses rapides.',
     subject_id: 'subject-1',
     pack_id: demoPack.id,
     file_path: 'demo/resume-economie.pdf',
@@ -73,8 +73,8 @@ export const documents = [
   },
   {
     id: 'doc-2',
-    title: 'Annales corrigees management',
-    description: 'Sujets recents avec corrections detaillees.',
+    title: 'Annales corrigées de management',
+    description: 'Sujets récents avec corrections détaillées.',
     subject_id: 'subject-2',
     pack_id: demoPack.id,
     file_path: 'demo/annales-management.pdf',
@@ -84,8 +84,8 @@ export const documents = [
   },
   {
     id: 'doc-3',
-    title: 'Support preparation orale',
-    description: 'Methodes pour structurer les reponses orales.',
+    title: 'Support de préparation orale',
+    description: 'Méthodes pour structurer les réponses orales.',
     subject_id: 'subject-8',
     pack_id: demoPack.id,
     file_path: 'demo/oral.pdf',
@@ -98,8 +98,8 @@ export const documents = [
 export const quizzes = [
   {
     id: 'quiz-1',
-    title: 'QCM Economie - Fondamentaux',
-    description: 'Verification des notions de base.',
+    title: 'QCM Économie - Fondamentaux',
+    description: 'Vérification des notions de base.',
     subject_id: 'subject-1',
     pack_id: demoPack.id,
     duration_minutes: 30,
@@ -122,7 +122,7 @@ export const questions = [
   {
     id: 'q-1',
     quiz_id: 'quiz-1',
-    question_text: 'Quel indicateur mesure la richesse produite par une economie ?',
+    question_text: 'Quel indicateur mesure la richesse produite par une économie ?',
     explanation: 'Le PIB mesure la valeur des biens et services finaux produits.',
     display_order: 1,
     answers: [
@@ -134,8 +134,8 @@ export const questions = [
   {
     id: 'q-2',
     quiz_id: 'quiz-1',
-    question_text: 'Une inflation elevee reduit generalement le pouvoir d achat.',
-    explanation: 'A revenu constant, la hausse generale des prix reduit la quantite achetable.',
+    question_text: 'Une inflation élevée réduit généralement le pouvoir d’achat.',
+    explanation: 'À revenu constant, la hausse générale des prix réduit la quantité achetable.',
     display_order: 2,
     answers: [
       { id: 'a-4', question_id: 'q-2', answer_text: 'Vrai', is_correct: true },
@@ -145,7 +145,7 @@ export const questions = [
   {
     id: 'q-3',
     quiz_id: 'quiz-2',
-    question_text: 'Le management participatif implique les collaborateurs dans les decisions.',
+    question_text: 'Le management participatif implique les collaborateurs dans les décisions.',
     explanation: 'Ce style favorise la contribution et la responsabilisation.',
     display_order: 1,
     answers: [
@@ -158,8 +158,8 @@ export const questions = [
 export const recordings = [
   {
     id: 'rec-1',
-    title: 'Seance economie - cadrage concours',
-    description: 'Replay de la premiere seance.',
+    title: 'Séance économie - cadrage concours',
+    description: 'Replay de la première séance.',
     subject_id: 'subject-1',
     pack_id: demoPack.id,
     youtube_video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
@@ -171,8 +171,8 @@ export const recordings = [
   },
   {
     id: 'rec-2',
-    title: 'Seance orale - methodologie',
-    description: 'Conseils pour l entretien oral.',
+    title: 'Séance orale - méthodologie',
+    description: 'Conseils pour l’entretien oral.',
     subject_id: 'subject-8',
     pack_id: demoPack.id,
     youtube_video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
@@ -192,7 +192,7 @@ export const registrationRequests = [
     email: 'hajar@example.com',
     city: 'Casablanca',
     study_level: 'Licence',
-    field: 'Economie',
+    field: 'Économie',
     pack_id: demoPack.id,
     status: 'pending',
     created_at: '2026-07-01T10:00:00',
@@ -217,7 +217,7 @@ export const contactMessages = [
     full_name: 'Nadia',
     phone: '0655555555',
     email: 'nadia@example.com',
-    message: 'Je veux plus d informations sur les seances.',
+    message: 'Je veux plus d’informations sur les séances.',
     status: 'new',
     created_at: '2026-07-01T12:00:00',
   },

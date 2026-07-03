@@ -20,7 +20,7 @@ export default function QuizHistory() {
             { key: 'quiz', label: 'QCM', render: (row) => row.quizzes?.title || row.quiz_id },
             { key: 'score', label: 'Score', render: (row) => `${row.score}/${row.total_questions}` },
             { key: 'percentage', label: 'Pourcentage', render: (row) => <Badge tone={row.percentage >= 50 ? 'active' : 'expired'}>{row.percentage}%</Badge> },
-            { key: 'details', label: 'Details', render: () => 'Correction disponible apres chaque tentative' },
+            { key: 'details', label: 'Détails', render: () => 'Correction disponible après chaque tentative' },
           ]}
         />
       </div>

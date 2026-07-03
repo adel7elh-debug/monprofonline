@@ -1,6 +1,6 @@
 import { Inbox } from 'lucide-react';
 
-export default function EmptyState({ title = 'Aucun element', description = 'Les donnees apparaitront ici.' }) {
+export default function EmptyState({ title = 'Aucun élément', description = 'Les données apparaîtront ici.' }) {
   return (
     <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
       <Inbox className="mx-auto h-8 w-8 text-slate-400" />

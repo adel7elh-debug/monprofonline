@@ -11,10 +11,24 @@ const toneMap = {
   default: 'bg-slate-100 text-slate-700',
 };
 
+const labelMap = {
+  active: 'Actif',
+  pending: 'En attente',
+  inactive: 'Inactif',
+  expired: 'Expiré',
+  accepted: 'Acceptée',
+  rejected: 'Refusée',
+  new: 'Nouveau',
+  contacted: 'Contacté',
+  closed: 'Clôturé',
+};
+
 export default function Badge({ children, tone = 'default' }) {
+  const label = typeof children === 'string' ? labelMap[children] || children : children;
+
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${toneMap[tone] || toneMap.default}`}>
-      {children}
+      {label}
     </span>
   );
 }

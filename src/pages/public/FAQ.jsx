@@ -1,10 +1,10 @@
 import Card from '../../components/Card';
 
 const faqs = [
-  ['Est-ce que le paiement est en ligne ?', 'Non. Le paiement est confirme manuellement hors plateforme.'],
-  ['Quand mon acces est-il active ?', 'Apres validation par l administration et association de votre pack.'],
-  ['Les PDF sont-ils publics ?', 'Non. Les fichiers sont stockes dans un bucket prive et servis via liens temporaires.'],
-  ['Les videos YouTube sont-elles publiques ?', 'Non. Les liens non repertories sont visibles uniquement dans l espace etudiant.'],
+  ['Le paiement se fait-il en ligne ?', 'Non. Le paiement est confirmé manuellement hors plateforme.'],
+  ['Quand mon accès est-il activé ?', 'Après validation par l’administration et association de votre pack.'],
+  ['Les PDF sont-ils publics ?', 'Non. Les fichiers sont stockés dans un bucket privé et servis via des liens temporaires.'],
+  ['Les vidéos YouTube sont-elles publiques ?', 'Non. Les liens non répertoriés sont visibles uniquement dans l’espace étudiant.'],
 ];
 
 export default function FAQ() {

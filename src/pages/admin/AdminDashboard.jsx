@@ -35,17 +35,17 @@ export default function AdminDashboard() {
     : 0;
   return (
     <div>
-      <h1 className="text-3xl font-black text-navy">Dashboard admin</h1>
+      <h1 className="text-3xl font-black text-navy">Tableau de bord admin</h1>
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
-          ['Etudiants total', students.length],
-          ['Etudiants actifs', students.filter((item) => item.access_status === 'active').length],
+          ['Total étudiants', students.length],
+          ['Étudiants actifs', students.filter((item) => item.access_status === 'active').length],
           ['Demandes en attente', data.requests.filter((item) => item.status === 'pending').length],
           ['Supports', data.documents.length],
           ['QCM', data.quizzes.length],
           ['Enregistrements', data.recordings.length],
           ['Tentatives QCM', data.attempts.length],
-          ['Moyenne scores', `${average}%`],
+          ['Score moyen', `${average}%`],
         ].map(([label, value]) => (
           <Card key={label} className="p-5">
             <p className="text-sm font-bold uppercase tracking-wide text-slate-500">{label}</p>
@@ -55,19 +55,19 @@ export default function AdminDashboard() {
       </div>
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
         <div>
-          <h2 className="mb-3 font-black text-navy">Dernieres demandes</h2>
+          <h2 className="mb-3 font-black text-navy">Dernières demandes</h2>
           <Table
             rows={data.requests.slice(0, 5)}
             columns={[
               { key: 'full_name', label: 'Nom' },
-              { key: 'phone', label: 'Telephone' },
+              { key: 'phone', label: 'Téléphone' },
               { key: 'status', label: 'Statut' },
               { key: 'created_at', label: 'Date', render: (row) => formatDateTime(row.created_at) },
             ]}
           />
         </div>
         <div>
-          <h2 className="mb-3 font-black text-navy">Dernieres tentatives</h2>
+          <h2 className="mb-3 font-black text-navy">Dernières tentatives</h2>
           <Table
             rows={data.attempts.slice(0, 5)}
             columns={[

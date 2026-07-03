@@ -11,12 +11,12 @@ export default function ResultsManagement() {
   if (!attempts) return <LoadingSpinner />;
   return (
     <div>
-      <h1 className="text-3xl font-black text-navy">Resultats etudiants</h1>
+      <h1 className="text-3xl font-black text-navy">Résultats des étudiants</h1>
       <div className="mt-6">
         <Table
           rows={attempts}
           columns={[
-            { key: 'student', label: 'Etudiant', render: (row) => row.profiles?.full_name || row.student_id },
+            { key: 'student', label: 'Étudiant', render: (row) => row.profiles?.full_name || row.student_id },
             { key: 'quiz', label: 'QCM', render: (row) => row.quizzes?.title || row.quiz_id },
             { key: 'score', label: 'Score', render: (row) => `${row.score}/${row.total_questions}` },
             { key: 'percentage', label: 'Pourcentage', render: (row) => <Badge tone={row.percentage >= 50 ? 'active' : 'expired'}>{row.percentage}%</Badge> },

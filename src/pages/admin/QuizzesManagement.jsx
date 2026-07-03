@@ -30,14 +30,14 @@ export default function QuizzesManagement() {
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-3">
           <FormInput label="Titre" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <FormInput label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <FormInput label="Duree minutes" type="number" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
+          <FormInput label="Durée en minutes" type="number" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
           <select value={form.subject_id} onChange={(e) => setForm({ ...form, subject_id: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
             {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
           </select>
           <select value={form.pack_id} onChange={(e) => setForm({ ...form, pack_id: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
             {data.packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
           </select>
-          <Button type="submit">Creer QCM</Button>
+          <Button type="submit">Créer le QCM</Button>
         </form>
       </Card>
       <div className="mt-6">
@@ -45,16 +45,16 @@ export default function QuizzesManagement() {
           rows={data.quizzes}
           columns={[
             { key: 'title', label: 'Titre' },
-            { key: 'duration_minutes', label: 'Duree' },
-            { key: 'is_published', label: 'Publie', render: (row) => <Badge tone={row.is_published ? 'active' : 'inactive'}>{row.is_published ? 'Oui' : 'Non'}</Badge> },
+            { key: 'duration_minutes', label: 'Durée' },
+            { key: 'is_published', label: 'Publié', render: (row) => <Badge tone={row.is_published ? 'active' : 'inactive'}>{row.is_published ? 'Oui' : 'Non'}</Badge> },
             {
               key: 'actions',
               label: 'Actions',
               render: (row) => (
                 <div className="flex flex-wrap gap-2">
-                  <Link to={`/admin/quizzes/${row.id}`}><Button variant="secondary">Editer</Button></Link>
+                  <Link to={`/admin/quizzes/${row.id}`}><Button variant="secondary">Modifier</Button></Link>
                   <Button variant="outline" onClick={() => updateRow('quizzes', row.id, { is_published: !row.is_published }).then(load)}>
-                    {row.is_published ? 'Desactiver' : 'Publier'}
+                    {row.is_published ? 'Désactiver' : 'Publier'}
                   </Button>
                 </div>
               ),

@@ -15,7 +15,7 @@ export default function StudentSubjects() {
   if (!data) return <LoadingSpinner />;
   return (
     <div>
-      <h1 className="text-3xl font-black text-navy">Mes matieres</h1>
+      <h1 className="text-3xl font-black text-navy">Mes matières</h1>
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {data.subjects.map((subject) => (
           <Card key={subject.id} className="p-5">

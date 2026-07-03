@@ -17,7 +17,7 @@ export default function RegistrationRequests() {
   const rows = useMemo(() => requests?.filter((row) => !filter || row.status === filter) || [], [requests, filter]);
   const accept = async (row) => {
     const response = await invokeFunction('create-student-from-request', { request_id: row.id });
-    setMessage(response?.message || 'Compte etudiant cree via Edge Function.');
+    setMessage(response?.message || 'Compte étudiant créé via la fonction sécurisée.');
     if (response?.temporary_password) {
       setPasswordModal(response);
       return;
@@ -41,12 +41,12 @@ export default function RegistrationRequests() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-black text-navy">Demandes d'inscription</h1>
+        <h1 className="text-3xl font-black text-navy">Demandes d’inscription</h1>
         <select value={filter} onChange={(e) => setFilter(e.target.value)} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
           <option value="">Tous</option>
-          <option value="pending">pending</option>
-          <option value="accepted">accepted</option>
-          <option value="rejected">rejected</option>
+          <option value="pending">En attente</option>
+          <option value="accepted">Acceptées</option>
+          <option value="rejected">Refusées</option>
         </select>
       </div>
       {message ? <p className="mt-3 text-sm font-semibold text-emerald-700">{message}</p> : null}
@@ -55,7 +55,7 @@ export default function RegistrationRequests() {
           rows={rows}
           columns={[
             { key: 'full_name', label: 'Nom' },
-            { key: 'phone', label: 'Telephone' },
+            { key: 'phone', label: 'Téléphone' },
             { key: 'email', label: 'Email' },
             { key: 'city', label: 'Ville' },
             { key: 'status', label: 'Statut', render: (row) => <Badge tone={row.status}>{row.status}</Badge> },
@@ -65,7 +65,7 @@ export default function RegistrationRequests() {
               label: 'Actions',
               render: (row) => (
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" onClick={() => accept(row)}>Creer compte</Button>
+                  <Button variant="secondary" onClick={() => accept(row)}>Créer le compte</Button>
                   <Button variant="outline" onClick={() => reject(row)}>Refuser</Button>
                 </div>
               ),
@@ -86,7 +86,7 @@ export default function RegistrationRequests() {
             </div>
           </div>
           <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            Copiez ce mot de passe maintenant et envoyez-le à l'étudiant. Il ne sera plus affiché après fermeture.
+            Copiez ce mot de passe maintenant et envoyez-le à l’étudiant. Il ne sera plus affiché après fermeture.
           </p>
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={copyPassword}>Copier le mot de passe</Button>

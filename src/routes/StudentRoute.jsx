@@ -6,6 +6,18 @@ import { useAuth } from '../context/AuthContext';
 import { getStudentPack } from '../lib/dataService';
 import { isActiveStudent } from '../utils/roles';
 
+const statusLabels = {
+  active: 'Actif',
+  pending: 'En attente',
+  inactive: 'Inactif',
+  expired: 'Expiré',
+};
+
+const roleLabels = {
+  student: 'Étudiant',
+  admin: 'Administrateur',
+};
+
 export default function StudentRoute() {
   const { user, profile, profileLoading, profileError, loading } = useAuth();
   const [pack, setPack] = useState(null);
@@ -60,10 +72,10 @@ export default function StudentRoute() {
 
   const debugAccess = (
     <div className="mt-4 rounded-md border border-slate-200 bg-white p-4 text-left text-xs text-slate-600">
-      <p><strong>profile.role:</strong> {profile?.role || '-'}</p>
-      <p><strong>profile.access_status:</strong> {profile?.access_status || '-'}</p>
-      <p><strong>activePack.status:</strong> {pack?.status || '-'}</p>
-      <p><strong>activePack.end_date:</strong> {pack?.end_date || 'null'}</p>
+      <p><strong>Rôle du profil :</strong> {roleLabels[profile?.role] || profile?.role || '-'}</p>
+      <p><strong>Statut d’accès :</strong> {statusLabels[profile?.access_status] || profile?.access_status || '-'}</p>
+      <p><strong>Statut du pack actif :</strong> {statusLabels[pack?.status] || pack?.status || '-'}</p>
+      <p><strong>Date de fin du pack :</strong> {pack?.end_date || 'Aucune date de fin'}</p>
     </div>
   );
 
@@ -71,7 +83,7 @@ export default function StudentRoute() {
     return (
       <div className="mx-auto max-w-2xl p-6">
         <AlertMessage type="error">
-          Impossible de verifier votre pack actif. Merci de contacter l'administration.
+          Impossible de vérifier votre pack actif. Merci de contacter l’administration.
         </AlertMessage>
         {debugAccess}
       </div>
@@ -82,7 +94,7 @@ export default function StudentRoute() {
     return (
       <div className="mx-auto max-w-2xl p-6">
         <AlertMessage type="warning">
-          Votre acces n'est pas encore active. Merci de contacter l'administration.
+          Votre accès n’est pas encore activé. Merci de contacter l’administration.
         </AlertMessage>
         {debugAccess}
       </div>

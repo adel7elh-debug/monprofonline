@@ -16,7 +16,7 @@ export default function ForgotPassword() {
     setLoading(true);
     try {
       await resetPassword(email);
-      setMessage('Si cet email existe, un lien de reinitialisation sera envoye.');
+      setMessage('Si cet email existe, un lien de réinitialisation sera envoyé.');
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -27,7 +27,7 @@ export default function ForgotPassword() {
   return (
     <main className="mx-auto max-w-md px-4 py-12">
       <Card className="p-6">
-        <h1 className="text-2xl font-black text-navy">Mot de passe oublie</h1>
+        <h1 className="text-2xl font-black text-navy">Mot de passe oublié</h1>
         {message ? <div className="mt-4"><AlertMessage type="info">{message}</AlertMessage></div> : null}
         <form onSubmit={submit} className="mt-6 grid gap-4">
           <FormInput label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />

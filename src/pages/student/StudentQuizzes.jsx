@@ -18,7 +18,7 @@ export default function StudentQuizzes() {
     <div>
       <h1 className="text-3xl font-black text-navy">QCM</h1>
       <select value={subject} onChange={(e) => setSubject(e.target.value)} className="focus-ring mt-5 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-        <option value="">Toutes les matieres</option>
+        <option value="">Toutes les matières</option>
         {data.subjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">

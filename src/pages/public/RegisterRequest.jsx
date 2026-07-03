@@ -42,7 +42,7 @@ export default function RegisterRequest() {
     setLoading(true);
     try {
       if (!isSupabaseConfigured || !supabase) {
-        setStatus('Mode demo : Supabase n est pas configure. La demande n a pas ete enregistree en base.');
+        setStatus('Mode démo : Supabase n’est pas configuré. La demande n’a pas été enregistrée en base.');
         return;
       }
 
@@ -66,7 +66,7 @@ export default function RegisterRequest() {
         throw error;
       }
 
-      setStatus('Votre demande d inscription a ete recue. L administration vous contactera pour activer votre acces.');
+      setStatus('Votre demande d’inscription a été reçue. L’administration vous contactera pour activer votre accès.');
       setForm(initialForm);
     } catch (error) {
       console.error('Registration insert error:', error);
@@ -79,18 +79,18 @@ export default function RegisterRequest() {
   return (
     <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <Card className="p-6">
-        <h1 className="text-3xl font-black text-navy">Demande d'inscription</h1>
-        <p className="mt-2 text-slate-600">La creation du compte est effectuee manuellement par l admin apres validation.</p>
-        {status ? <div className="mt-5"><AlertMessage type={status.includes('recue') ? 'success' : 'error'}>{status}</AlertMessage></div> : null}
+        <h1 className="text-3xl font-black text-navy">Demande d’inscription</h1>
+        <p className="mt-2 text-slate-600">La création du compte est effectuée manuellement par l’administration après validation.</p>
+        {status ? <div className="mt-5"><AlertMessage type={status.includes('reçue') ? 'success' : 'error'}>{status}</AlertMessage></div> : null}
         <form onSubmit={submit} className="mt-6 grid gap-4 md:grid-cols-2">
           <FormInput label="Nom complet" name="full_name" value={form.full_name} onChange={update} error={errors.full_name} />
-          <FormInput label="Telephone" name="phone" value={form.phone} onChange={update} error={errors.phone} />
+          <FormInput label="Téléphone" name="phone" value={form.phone} onChange={update} error={errors.phone} />
           <FormInput label="Email" name="email" value={form.email} onChange={update} error={errors.email} />
           <FormInput label="Ville" name="city" value={form.city} onChange={update} />
-          <FormInput label="Niveau d'etude" name="study_level" value={form.study_level} onChange={update} />
-          <FormInput label="Filiere" name="field" value={form.field} onChange={update} />
+          <FormInput label="Niveau d’étude" name="study_level" value={form.study_level} onChange={update} />
+          <FormInput label="Filière" name="field" value={form.field} onChange={update} />
           <label className="block md:col-span-2">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Pack souhaite</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Pack souhaité</span>
             <select name="pack_id" value={form.pack_id} onChange={update} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
               {packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
             </select>

@@ -24,7 +24,7 @@ import { useAuth } from '../context/AuthContext';
 
 const studentItems = [
   { to: '/student', label: 'Dashboard', icon: Home },
-  { to: '/student/subjects', label: 'Mes matieres', icon: Library },
+  { to: '/student/subjects', label: 'Mes matières', icon: Library },
   { to: '/student/documents', label: 'Supports PDF', icon: FileText },
   { to: '/student/quizzes', label: 'QCM', icon: ClipboardList },
   { to: '/student/history', label: 'Historique QCM', icon: Trophy },
@@ -35,12 +35,12 @@ const studentItems = [
 const adminItems = [
   { to: '/admin', label: 'Dashboard', icon: BarChart3 },
   { to: '/admin/requests', label: 'Demandes', icon: Inbox },
-  { to: '/admin/students', label: 'Etudiants', icon: Users },
+  { to: '/admin/students', label: 'Étudiants', icon: Users },
   { to: '/admin/packs', label: 'Packs', icon: FolderKanban },
-  { to: '/admin/subjects', label: 'Matieres', icon: BookOpen },
+  { to: '/admin/subjects', label: 'Matières', icon: BookOpen },
   { to: '/admin/documents', label: 'Documents PDF', icon: FileText },
   { to: '/admin/quizzes', label: 'QCM', icon: ClipboardList },
-  { to: '/admin/results', label: 'Resultats', icon: Trophy },
+  { to: '/admin/results', label: 'Résultats', icon: Trophy },
   { to: '/admin/recordings', label: 'Enregistrements', icon: PlaySquare },
   { to: '/admin/messages', label: 'Messages contact', icon: MessageSquare },
 ];
@@ -50,7 +50,7 @@ export default function DashboardLayout({ area }) {
   const { profile } = useAuth();
   const parentContext = useOutletContext() || {};
   const items = area === 'admin' ? adminItems : studentItems;
-  const title = area === 'admin' ? 'Espace admin' : 'Espace etudiant';
+  const title = area === 'admin' ? 'Espace admin' : 'Espace étudiant';
   return (
     <div className="min-h-screen bg-mist">
       <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">

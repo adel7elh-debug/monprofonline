@@ -5,15 +5,15 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 
 const items = [
-  'Preparation ecrite',
-  'Preparation orale',
+  'Préparation écrite',
+  'Préparation orale',
   'Supports PDF',
-  'Resumes',
-  'Annales corrigees',
-  'QCM corriges',
-  'Enregistrements des seances',
-  'Accompagnement personnalise',
-  'Acces espace etudiant',
+  'Résumés',
+  'Annales corrigées',
+  'QCM corrigés',
+  'Enregistrements des séances',
+  'Accompagnement personnalisé',
+  'Accès à l’espace étudiant',
 ];
 
 export default function Packs() {
@@ -21,9 +21,9 @@ export default function Packs() {
     <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
       <Card className="overflow-hidden">
         <div className="bg-navy p-6 text-white">
-          <Badge tone="pending">Offre limitee</Badge>
-          <h1 className="mt-4 text-3xl font-black">Pack Complet Preparation Master</h1>
-          <p className="mt-2 text-white/75">Un parcours complet pour preparer les epreuves ecrites et orales.</p>
+          <Badge tone="pending">Offre limitée</Badge>
+          <h1 className="mt-4 text-3xl font-black">Pack complet Préparation Master</h1>
+          <p className="mt-2 text-white/75">Un parcours complet pour préparer les épreuves écrites et orales.</p>
         </div>
         <div className="grid gap-8 p-6 md:grid-cols-[1fr_280px]">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -39,7 +39,7 @@ export default function Packs() {
             <p className="mt-2 text-4xl font-black text-navy">1300 DH</p>
             <p className="mt-2 text-sm text-slate-600">Aucun paiement en ligne dans cette version.</p>
             <div className="mt-5 grid gap-2">
-              <Link to="/inscription"><Button className="w-full">Demander l'inscription</Button></Link>
+              <Link to="/inscription"><Button className="w-full">Demander l’inscription</Button></Link>
               <a href="https://wa.me/212600000000" target="_blank" rel="noreferrer">
                 <Button variant="outline" className="w-full"><MessageCircle className="h-4 w-4" />WhatsApp</Button>
               </a>

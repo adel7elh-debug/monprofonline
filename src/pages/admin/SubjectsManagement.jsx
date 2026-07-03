@@ -20,13 +20,13 @@ export default function SubjectsManagement() {
   if (!subjects) return <LoadingSpinner />;
   return (
     <div>
-      <h1 className="text-3xl font-black text-navy">Gestion matieres</h1>
+      <h1 className="text-3xl font-black text-navy">Gestion des matières</h1>
       <Card className="mt-5 p-5">
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-4">
           <FormInput label="Nom" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <FormInput label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <FormInput label="Ordre" type="number" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: Number(e.target.value) })} />
-          <Button type="submit" className="self-end">Ajouter matiere</Button>
+          <Button type="submit" className="self-end">Ajouter une matière</Button>
         </form>
       </Card>
       <div className="mt-6">

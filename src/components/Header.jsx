@@ -34,7 +34,7 @@ export default function Header({ onMenu }) {
               <span className="text-sm text-slate-600">{profile?.full_name}</span>
               <Button variant="outline" onClick={signOut}>
                 <LogOut className="h-4 w-4" />
-                Sortir
+                Déconnexion
               </Button>
             </>
           ) : (

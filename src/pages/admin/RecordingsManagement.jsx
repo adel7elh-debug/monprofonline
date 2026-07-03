@@ -29,17 +29,17 @@ export default function RecordingsManagement() {
       <Card className="mt-5 p-5">
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-3">
           <FormInput label="Titre" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-          <FormInput label="Lien video YouTube" value={form.youtube_video_url} onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })} />
+          <FormInput label="Lien vidéo YouTube" value={form.youtube_video_url} onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })} />
           <FormInput label="Lien playlist YouTube" value={form.youtube_playlist_url} onChange={(e) => setForm({ ...form, youtube_playlist_url: e.target.value })} />
           <FormInput label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <FormInput label="Date seance" type="datetime-local" value={form.session_date} onChange={(e) => setForm({ ...form, session_date: e.target.value })} />
+          <FormInput label="Date de séance" type="datetime-local" value={form.session_date} onChange={(e) => setForm({ ...form, session_date: e.target.value })} />
           <select value={form.subject_id} onChange={(e) => setForm({ ...form, subject_id: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
             {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
           </select>
           <select value={form.pack_id} onChange={(e) => setForm({ ...form, pack_id: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
             {data.packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
           </select>
-          <Button type="submit">Ajouter enregistrement</Button>
+          <Button type="submit">Ajouter l’enregistrement</Button>
         </form>
       </Card>
       <div className="mt-6">
@@ -47,7 +47,7 @@ export default function RecordingsManagement() {
           rows={data.recordings}
           columns={[
             { key: 'title', label: 'Titre' },
-            { key: 'subject', label: 'Matiere', render: (row) => row.subjects?.name || '-' },
+            { key: 'subject', label: 'Matière', render: (row) => row.subjects?.name || '-' },
             { key: 'session_date', label: 'Date', render: (row) => formatDate(row.session_date) },
             { key: 'is_visible', label: 'Visible', render: (row) => <Badge tone={row.is_visible ? 'active' : 'inactive'}>{row.is_visible ? 'Oui' : 'Non'}</Badge> },
             { key: 'actions', label: 'Actions', render: (row) => <Button variant="outline" onClick={() => updateRow('recordings', row.id, { is_visible: !row.is_visible }).then(load)}>{row.is_visible ? 'Masquer' : 'Afficher'}</Button> },

@@ -16,12 +16,12 @@ export default function ContactMessages() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-black text-navy">Messages contact</h1>
+        <h1 className="text-3xl font-black text-navy">Messages de contact</h1>
         <select value={filter} onChange={(e) => setFilter(e.target.value)} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
           <option value="">Tous</option>
-          <option value="new">new</option>
-          <option value="contacted">contacted</option>
-          <option value="closed">closed</option>
+          <option value="new">Nouveaux</option>
+          <option value="contacted">Contactés</option>
+          <option value="closed">Clôturés</option>
         </select>
       </div>
       <div className="mt-6">
@@ -29,7 +29,7 @@ export default function ContactMessages() {
           rows={rows}
           columns={[
             { key: 'full_name', label: 'Nom' },
-            { key: 'phone', label: 'Telephone' },
+            { key: 'phone', label: 'Téléphone' },
             { key: 'email', label: 'Email' },
             { key: 'message', label: 'Message' },
             { key: 'status', label: 'Statut', render: (row) => <Badge tone={row.status}>{row.status}</Badge> },
@@ -39,7 +39,7 @@ export default function ContactMessages() {
               label: 'Actions',
               render: (row) => (
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => updateRowStatus('contact_messages', row.id, 'contacted').then(load)}>Contacte</Button>
+                  <Button variant="outline" onClick={() => updateRowStatus('contact_messages', row.id, 'contacted').then(load)}>Marquer comme contacté</Button>
                   <Button variant="outline" onClick={() => updateRowStatus('contact_messages', row.id, 'closed').then(load)}>Clore</Button>
                   <Button variant="danger" onClick={() => deleteRow('contact_messages', row.id).then(load)}>Supprimer</Button>
                 </div>

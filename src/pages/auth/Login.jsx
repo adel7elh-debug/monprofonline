@@ -19,7 +19,7 @@ export default function Login() {
   const submit = async (event) => {
     event.preventDefault();
     setLoading(true);
-      setError(null);
+    setError(null);
     try {
       const profile = await signIn(form.email, form.password);
       const redirect = location.state?.from?.pathname;
@@ -40,7 +40,7 @@ export default function Login() {
       <Card className="p-6">
         <h1 className="text-2xl font-black text-navy">Connexion</h1>
         {!isSupabaseConfigured ? (
-          <p className="mt-2 text-sm text-slate-600">Demo sans Supabase : utilisez un email contenant admin pour l espace admin.</p>
+          <p className="mt-2 text-sm text-slate-600">Mode démo sans Supabase : utilisez un email contenant « admin » pour accéder à l’espace admin.</p>
         ) : null}
         {error ? <div className="mt-4"><AlertMessage type="error">{error}</AlertMessage></div> : null}
         <form onSubmit={submit} className="mt-6 grid gap-4">
@@ -48,7 +48,7 @@ export default function Login() {
           <FormInput label="Mot de passe" name="password" type="password" value={form.password} onChange={update} />
           <Button type="submit" loading={loading}>Se connecter</Button>
         </form>
-        <Link to="/forgot-password" className="mt-4 block text-sm font-semibold text-royal">Mot de passe oublie ?</Link>
+        <Link to="/forgot-password" className="mt-4 block text-sm font-semibold text-royal">Mot de passe oublié ?</Link>
       </Card>
     </main>
   );

@@ -27,7 +27,7 @@ export default function DocumentsManagement() {
   if (!data) return <LoadingSpinner />;
   return (
     <div>
-      <h1 className="text-3xl font-black text-navy">Gestion documents PDF</h1>
+      <h1 className="text-3xl font-black text-navy">Gestion des documents PDF</h1>
       <Card className="mt-5 p-5">
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-3">
           <FormInput label="Titre" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
@@ -37,7 +37,7 @@ export default function DocumentsManagement() {
             <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0])} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
           </label>
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Matiere</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Matière</span>
             <select value={form.subject_id} onChange={(e) => setForm({ ...form, subject_id: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
               {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
             </select>
@@ -51,10 +51,15 @@ export default function DocumentsManagement() {
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate-700">Type</span>
             <select value={form.document_type} onChange={(e) => setForm({ ...form, document_type: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-              {['support', 'resume', 'annale', 'correction'].map((type) => <option key={type} value={type}>{type}</option>)}
+              {[
+                ['support', 'Support'],
+                ['resume', 'Résumé'],
+                ['annale', 'Annale'],
+                ['correction', 'Correction'],
+              ].map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
-          <Button type="submit" className="md:col-span-3">Ajouter document</Button>
+          <Button type="submit" className="md:col-span-3">Ajouter le document</Button>
         </form>
       </Card>
       <div className="mt-6">
@@ -63,9 +68,9 @@ export default function DocumentsManagement() {
           columns={[
             { key: 'title', label: 'Titre' },
             { key: 'document_type', label: 'Type' },
-            { key: 'subject', label: 'Matiere', render: (row) => row.subjects?.name || '-' },
+            { key: 'subject', label: 'Matière', render: (row) => row.subjects?.name || '-' },
             { key: 'is_visible', label: 'Visible', render: (row) => <Badge tone={row.is_visible ? 'active' : 'inactive'}>{row.is_visible ? 'Oui' : 'Non'}</Badge> },
-            { key: 'file_path', label: 'Chemin fichier' },
+            { key: 'file_path', label: 'Chemin du fichier' },
           ]}
         />
       </div>

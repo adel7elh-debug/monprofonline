@@ -26,7 +26,7 @@ export default function QuizEditor() {
   if (!data) return <LoadingSpinner />;
   return (
     <div>
-      <h1 className="text-3xl font-black text-navy">Editeur QCM</h1>
+      <h1 className="text-3xl font-black text-navy">Éditeur de QCM</h1>
       <p className="mt-1 text-slate-600">{data.quiz?.title}</p>
       <Card className="mt-5 p-5">
         <form onSubmit={submit} className="grid gap-3">
@@ -34,16 +34,16 @@ export default function QuizEditor() {
           <FormInput label="Explication" value={question.explanation} onChange={(e) => setQuestion({ ...question, explanation: e.target.value })} />
           {answers.map((answer, index) => (
             <div key={index} className="grid gap-2 md:grid-cols-[1fr_auto]">
-              <FormInput label={`Reponse ${index + 1}`} value={answer.answer_text} onChange={(e) => setAnswers((items) => items.map((item, i) => i === index ? { ...item, answer_text: e.target.value } : item))} />
+              <FormInput label={`Réponse ${index + 1}`} value={answer.answer_text} onChange={(e) => setAnswers((items) => items.map((item, i) => i === index ? { ...item, answer_text: e.target.value } : item))} />
               <label className="flex items-end gap-2 pb-2 text-sm font-semibold text-slate-700">
                 <input type="checkbox" checked={answer.is_correct} onChange={(e) => setAnswers((items) => items.map((item, i) => i === index ? { ...item, is_correct: e.target.checked } : item))} />
-                Bonne reponse
+                Bonne réponse
               </label>
             </div>
           ))}
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => setAnswers((items) => [...items, { answer_text: '', is_correct: false }])}>Ajouter reponse</Button>
-            <Button type="submit">Ajouter question</Button>
+            <Button type="button" variant="outline" onClick={() => setAnswers((items) => [...items, { answer_text: '', is_correct: false }])}>Ajouter une réponse</Button>
+            <Button type="submit">Ajouter la question</Button>
           </div>
         </form>
       </Card>
@@ -52,7 +52,7 @@ export default function QuizEditor() {
           <Card key={item.id} className="p-5">
             <h2 className="font-black text-navy">{item.question_text}</h2>
             <ul className="mt-3 grid gap-1 text-sm text-slate-600">
-              {item.answers?.map((answer) => <li key={answer.id}>{answer.is_correct ? '[correct] ' : ''}{answer.answer_text}</li>)}
+              {item.answers?.map((answer) => <li key={answer.id}>{answer.is_correct ? '[correcte] ' : ''}{answer.answer_text}</li>)}
             </ul>
             <p className="mt-3 text-sm text-slate-500">{item.explanation}</p>
           </Card>

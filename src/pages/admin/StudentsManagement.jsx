@@ -38,17 +38,17 @@ export default function StudentsManagement() {
   if (!profiles) return <LoadingSpinner />;
   return (
     <div>
-      <h1 className="text-3xl font-black text-navy">Gestion etudiants</h1>
+      <h1 className="text-3xl font-black text-navy">Gestion des étudiants</h1>
       <div className="mt-5 grid gap-3 md:grid-cols-3">
         <FormInput label="Recherche" value={query} onChange={(e) => setQuery(e.target.value)} />
         <label className="block">
           <span className="mb-1 block text-sm font-semibold text-slate-700">Statut</span>
           <select value={filter} onChange={(e) => setFilter(e.target.value)} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
             <option value="">Tous</option>
-            <option value="pending">pending</option>
-            <option value="active">active</option>
-            <option value="inactive">inactive</option>
-            <option value="expired">expired</option>
+            <option value="pending">En attente</option>
+            <option value="active">Actif</option>
+            <option value="inactive">Inactif</option>
+            <option value="expired">Expiré</option>
           </select>
         </label>
       </div>
@@ -57,7 +57,7 @@ export default function StudentsManagement() {
           rows={rows}
           columns={[
             { key: 'full_name', label: 'Nom' },
-            { key: 'phone', label: 'Telephone' },
+            { key: 'phone', label: 'Téléphone' },
             { key: 'access_status', label: 'Statut', render: (row) => <Badge tone={row.access_status}>{row.access_status}</Badge> },
             {
               key: 'actions',
@@ -65,9 +65,9 @@ export default function StudentsManagement() {
               render: (row) => (
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" onClick={() => setAccess(row, 'active')}>Activer</Button>
-                  <Button variant="outline" onClick={() => setAccess(row, 'inactive')}>Desactiver</Button>
+                  <Button variant="outline" onClick={() => setAccess(row, 'inactive')}>Désactiver</Button>
                   <Button variant="outline" onClick={() => setAccess(row, 'expired')}>Expirer</Button>
-                  <Button variant="outline" onClick={() => resetPassword(row)}>Réinitialiser mot de passe</Button>
+                  <Button variant="outline" onClick={() => resetPassword(row)}>Réinitialiser le mot de passe</Button>
                 </div>
               ),
             },
@@ -87,7 +87,7 @@ export default function StudentsManagement() {
             </div>
           </div>
           <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            Copiez ce mot de passe maintenant et envoyez-le à l'étudiant. Il ne sera plus affiché après fermeture.
+            Copiez ce mot de passe maintenant et envoyez-le à l’étudiant. Il ne sera plus affiché après fermeture.
           </p>
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={copyPassword}>Copier le mot de passe</Button>

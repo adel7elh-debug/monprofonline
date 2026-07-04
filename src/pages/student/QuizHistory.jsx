@@ -2,13 +2,26 @@ import { useEffect, useState } from 'react';
 import Badge from '../../components/Badge';
 import Table from '../../components/Table';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { listAttempts } from '../../lib/dataService';
+import { useAuth } from '../../context/AuthContext';
+import { listStudentAttempts } from '../../lib/dataService';
 import { formatDateTime } from '../../utils/formatDate';
 
 export default function QuizHistory() {
+  const { profile } = useAuth();
   const [attempts, setAttempts] = useState(null);
-  useEffect(() => { listAttempts().then(setAttempts); }, []);
-  if (!attempts) return <LoadingSpinner />;
+  useEffect(() => {
+    if (!profile?.id) {
+      setAttempts([]);
+      return;
+    }
+    listStudentAttempts(profile.id)
+      .then(setAttempts)
+      .catch((error) => {
+        console.error('Student quiz history load failed:', error);
+        setAttempts([]);
+      });
+  }, [profile?.id]);
+  if (!attempts) return <LoadingSpinner label="Chargement de l’historique..." />;
   return (
     <div>
       <h1 className="text-3xl font-black text-navy">Historique QCM</h1>

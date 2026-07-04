@@ -50,6 +50,12 @@ function NotFound() {
   );
 }
 
+const studentPage = (element) => (
+  <Suspense fallback={<LoadingSpinner label="Chargement de l’espace étudiant..." />}>
+    {element}
+  </Suspense>
+);
+
 export default function App() {
   return (
     <Suspense fallback={<LoadingSpinner label="Chargement..." />}>
@@ -69,16 +75,16 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<StudentRoute />}>
             <Route path="student" element={<DashboardLayout area="student" />}>
-              <Route index element={<StudentDashboard />} />
-              <Route path="subjects" element={<StudentSubjects />} />
-              <Route path="documents" element={<StudentDocuments />} />
-              <Route path="quizzes" element={<StudentQuizzes />} />
-              <Route path="quizzes/:quizId" element={<TakeQuiz />} />
-              <Route path="quizzes/:quizId/result" element={<QuizResult />} />
-              <Route path="history" element={<QuizHistory />} />
-              <Route path="recordings" element={<StudentRecordings />} />
-              <Route path="agenda" element={<StudentAgenda />} />
-              <Route path="profile" element={<StudentProfile />} />
+              <Route index element={studentPage(<StudentDashboard />)} />
+              <Route path="subjects" element={studentPage(<StudentSubjects />)} />
+              <Route path="documents" element={studentPage(<StudentDocuments />)} />
+              <Route path="quizzes" element={studentPage(<StudentQuizzes />)} />
+              <Route path="quizzes/:quizId" element={studentPage(<TakeQuiz />)} />
+              <Route path="quizzes/:quizId/result" element={studentPage(<QuizResult />)} />
+              <Route path="history" element={studentPage(<QuizHistory />)} />
+              <Route path="recordings" element={studentPage(<StudentRecordings />)} />
+              <Route path="agenda" element={studentPage(<StudentAgenda />)} />
+              <Route path="profile" element={studentPage(<StudentProfile />)} />
             </Route>
           </Route>
 

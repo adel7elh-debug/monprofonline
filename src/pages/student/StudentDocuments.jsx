@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Download, Eye } from 'lucide-react';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { getDocumentSignedUrl, listDocuments, listSubjects } from '../../lib/dataService';
+import { getDocumentSignedUrl, listStudentDocuments, listStudentSubjects } from '../../lib/dataService';
 
 const types = ['support', 'resume', 'annale', 'correction'];
 const typeLabels = {
@@ -16,14 +16,25 @@ const typeLabels = {
 };
 
 export default function StudentDocuments() {
+  const outletContext = useOutletContext() || {};
+  const { activePack } = outletContext;
   const [searchParams] = useSearchParams();
   const [subject, setSubject] = useState(searchParams.get('subject') || '');
   const [type, setType] = useState('');
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    Promise.all([listSubjects(), listDocuments()]).then(([subjects, documents]) => setData({ subjects, documents }));
-  }, []);
+    if (!activePack?.pack_id) {
+      setData({ subjects: [], documents: [] });
+      return;
+    }
+    Promise.all([listStudentSubjects(activePack.pack_id), listStudentDocuments(activePack.pack_id)])
+      .then(([subjects, documents]) => setData({ subjects, documents }))
+      .catch((error) => {
+        console.error('Student documents load failed:', error);
+        setData({ subjects: [], documents: [] });
+      });
+  }, [activePack?.pack_id]);
 
   const documents = useMemo(() => {
     if (!data) return [];
@@ -35,7 +46,7 @@ export default function StudentDocuments() {
     if (url && url !== '#') window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  if (!data) return <LoadingSpinner />;
+  if (!data) return <LoadingSpinner label="Chargement des documents..." />;
   return (
     <div>
       <h1 className="text-3xl font-black text-navy">Supports PDF</h1>

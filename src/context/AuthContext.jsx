@@ -24,7 +24,6 @@ export function AuthProvider({ children }) {
   const [profileError, setProfileError] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const navigate = useNavigate();
-  const isDev = import.meta.env.DEV;
 
   const hydrateUser = async (authUser) => {
     setUser(authUser);
@@ -93,20 +92,9 @@ export function AuthProvider({ children }) {
         console.error('Supabase session load failed:', error);
       }
 
-      if (isDev) {
-        console.log('AUTH SESSION CHECK', {
-          hasSession: Boolean(session),
-          userEmail: session?.user?.email,
-          authLoading: true,
-          profileLoading,
-          profile,
-        });
-      }
-
       if (mounted) await hydrateUser(session?.user || null);
 
       const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
-        if (isDev) console.log('AUTH STATE CHANGE', event);
         if (!mounted) return;
         if (event === 'SIGNED_OUT') {
           setUser(null);

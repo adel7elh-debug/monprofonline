@@ -7,7 +7,7 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { getStudentSessions, listSubjects } from '../../lib/dataService';
+import { getStudentSessions, listStudentSubjects } from '../../lib/dataService';
 
 const statusLabels = {
   scheduled: 'Programmée',
@@ -62,19 +62,22 @@ export default function StudentAgenda() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    setData(null);
+    setError(null);
     if (!activePack?.pack_id) {
       setData({ sessions: [], subjects: [] });
       return;
     }
 
-    Promise.all([getStudentSessions(activePack.pack_id), listSubjects()])
+    const range = view === 'all' ? {} : getWeekRange(view === 'next' ? 1 : 0);
+    Promise.all([getStudentSessions(activePack.pack_id, { from: range.start, to: range.end, limit: view === 'all' ? undefined : 50 }), listStudentSubjects(activePack.pack_id)])
       .then(([sessions, subjects]) => setData({ sessions, subjects }))
       .catch((err) => {
         console.error('Student agenda load error:', err);
         setError('Impossible de charger votre agenda.');
         setData({ sessions: [], subjects: [] });
       });
-  }, [activePack?.pack_id]);
+  }, [activePack?.pack_id, view]);
 
   const filteredSessions = useMemo(() => {
     const sessions = data?.sessions || [];
@@ -94,7 +97,7 @@ export default function StudentAgenda() {
     [filteredSessions],
   );
 
-  if (!data) return <LoadingSpinner />;
+  if (!data) return <LoadingSpinner label="Chargement de l’agenda..." />;
 
   if (!activePack?.pack_id) {
     return (

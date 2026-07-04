@@ -1,18 +1,32 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { listDocuments, listQuizzes, listRecordings, listSubjects } from '../../lib/dataService';
+import { listStudentDocuments, listStudentQuizzes, listStudentRecordings, listStudentSubjects } from '../../lib/dataService';
 
 export default function StudentSubjects() {
+  const outletContext = useOutletContext() || {};
+  const { activePack } = outletContext;
   const [data, setData] = useState(null);
   useEffect(() => {
-    Promise.all([listSubjects(), listDocuments(), listQuizzes(), listRecordings()]).then(
+    if (!activePack?.pack_id) {
+      setData({ subjects: [], documents: [], quizzes: [], recordings: [] });
+      return;
+    }
+    Promise.all([
+      listStudentSubjects(activePack.pack_id),
+      listStudentDocuments(activePack.pack_id),
+      listStudentQuizzes(activePack.pack_id),
+      listStudentRecordings(activePack.pack_id),
+    ]).then(
       ([subjects, documents, quizzes, recordings]) => setData({ subjects, documents, quizzes, recordings }),
-    );
-  }, []);
-  if (!data) return <LoadingSpinner />;
+    ).catch((error) => {
+      console.error('Student subjects load failed:', error);
+      setData({ subjects: [], documents: [], quizzes: [], recordings: [] });
+    });
+  }, [activePack?.pack_id]);
+  if (!data) return <LoadingSpinner label="Chargement..." />;
   return (
     <div>
       <h1 className="text-3xl font-black text-navy">Mes matières</h1>

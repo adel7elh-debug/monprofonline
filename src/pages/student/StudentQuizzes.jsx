@@ -1,19 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { listQuizzes, listSubjects } from '../../lib/dataService';
+import { listStudentQuizzes, listStudentSubjects } from '../../lib/dataService';
 
 export default function StudentQuizzes() {
+  const outletContext = useOutletContext() || {};
+  const { activePack } = outletContext;
   const [subject, setSubject] = useState('');
   const [data, setData] = useState(null);
   useEffect(() => {
-    Promise.all([listSubjects(), listQuizzes()]).then(([subjects, quizzes]) => setData({ subjects, quizzes }));
-  }, []);
+    if (!activePack?.pack_id) {
+      setData({ subjects: [], quizzes: [] });
+      return;
+    }
+    Promise.all([listStudentSubjects(activePack.pack_id), listStudentQuizzes(activePack.pack_id)])
+      .then(([subjects, quizzes]) => setData({ subjects, quizzes }))
+      .catch((error) => {
+        console.error('Student quizzes load failed:', error);
+        setData({ subjects: [], quizzes: [] });
+      });
+  }, [activePack?.pack_id]);
   const quizzes = useMemo(() => data?.quizzes.filter((quiz) => !subject || quiz.subject_id === subject) || [], [data, subject]);
-  if (!data) return <LoadingSpinner />;
+  if (!data) return <LoadingSpinner label="Chargement des QCM..." />;
   return (
     <div>
       <h1 className="text-3xl font-black text-navy">QCM</h1>

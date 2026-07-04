@@ -1,6 +1,8 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 let demoDataPromise;
+const sessionCache = new Map();
+const CACHE_TTL_MS = 60 * 1000;
 
 const getDemoData = async () => {
   if (!demoDataPromise) demoDataPromise = import('./demoData').then((module) => module.demoData);
@@ -20,6 +22,23 @@ const safeSelect = async (table, queryBuilder, fallbackKey) => {
     return [];
   }
   return data || [];
+};
+
+const cached = async (key, loader, ttl = CACHE_TTL_MS) => {
+  const now = Date.now();
+  const existing = sessionCache.get(key);
+  if (existing && existing.expiresAt > now) return existing.value;
+  const value = await loader();
+  sessionCache.set(key, { value, expiresAt: now + ttl });
+  return value;
+};
+
+const cacheKey = (...parts) => parts.filter((part) => part !== undefined && part !== null && part !== '').join(':');
+
+export const clearStudentCache = () => {
+  [...sessionCache.keys()].forEach((key) => {
+    if (key.startsWith('student:')) sessionCache.delete(key);
+  });
 };
 
 export const listPacks = () =>
@@ -84,23 +103,39 @@ export const getAdminSessions = () =>
     'sessions',
   );
 
-export const getStudentSessions = async (activePackId) => {
+export const getStudentSessions = async (activePackId, options = {}) => {
   if (!activePackId) return [];
+  const { from, to, limit } = options;
+  const key = cacheKey('student:sessions', activePackId, from || 'all', to || 'all', limit || 'all');
+  return cached(key, async () => {
   if (!isSupabaseConfigured) {
     const demoData = await getDemoData();
-    return demoData.sessions.filter((session) => session.is_visible && session.pack_id === activePackId);
+    const sessions = demoData.sessions.filter((session) => {
+      if (!session.is_visible || session.pack_id !== activePackId) return false;
+      if (from && session.session_date < from) return false;
+      if (to && session.session_date > to) return false;
+      return true;
+    });
+    return limit ? sessions.slice(0, limit) : sessions;
   }
-  const { data, error } = await supabase
+  let query = supabase
     .from('sessions')
     .select('*, subjects(name), packs(name)')
     .eq('is_visible', true)
     .eq('pack_id', activePackId)
     .order('session_date')
     .order('start_time');
+  if (from) query = query.gte('session_date', from);
+  if (to) query = query.lte('session_date', to);
+  if (limit) query = query.limit(limit);
+  const { data, error } = await query;
 
   if (error) {
     console.error('Supabase student sessions select failed:', {
       activePackId,
+      from,
+      to,
+      limit,
       error,
       message: error.message,
       details: error.details,
@@ -110,6 +145,7 @@ export const getStudentSessions = async (activePackId) => {
     throw error;
   }
   return data || [];
+  });
 };
 
 export const listRegistrationRequests = () =>
@@ -136,8 +172,230 @@ export const listAttempts = () =>
     'attempts',
   );
 
+export const listStudentSubjects = async (activePackId) => {
+  const key = cacheKey('student:subjects', activePackId || 'all');
+  return cached(key, async () => {
+    if (!isSupabaseConfigured) return fallback('subjects');
+    const { data, error } = await supabase
+      .from('subjects')
+      .select('*')
+      .order('display_order');
+    if (error) {
+      console.error('Supabase student subjects select failed:', {
+        activePackId,
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      throw error;
+    }
+    return data || [];
+  });
+};
+
+export const listStudentDocuments = async (activePackId) => {
+  if (!activePackId) return [];
+  const key = cacheKey('student:documents', activePackId);
+  return cached(key, async () => {
+    if (!isSupabaseConfigured) {
+      const demoData = await getDemoData();
+      return demoData.documents.filter((document) => document.is_visible && document.pack_id === activePackId);
+    }
+    const { data, error } = await supabase
+      .from('documents')
+      .select('id, title, description, subject_id, document_type, is_visible, created_at, subjects(name)')
+      .eq('is_visible', true)
+      .eq('pack_id', activePackId)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Supabase student documents select failed:', {
+        activePackId,
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      throw error;
+    }
+    return data || [];
+  });
+};
+
+export const listStudentQuizzes = async (activePackId, limit) => {
+  if (!activePackId) return [];
+  const key = cacheKey('student:quizzes', activePackId, limit || 'all');
+  return cached(key, async () => {
+    if (!isSupabaseConfigured) {
+      const demoData = await getDemoData();
+      const quizzes = demoData.quizzes.filter((quiz) => quiz.is_published && quiz.pack_id === activePackId);
+      return limit ? quizzes.slice(0, limit) : quizzes;
+    }
+    let query = supabase
+      .from('quizzes')
+      .select('id, title, description, subject_id, duration_minutes, created_at, subjects(name)')
+      .eq('is_published', true)
+      .eq('pack_id', activePackId)
+      .order('created_at', { ascending: false });
+    if (limit) query = query.limit(limit);
+    const { data, error } = await query;
+    if (error) {
+      console.error('Supabase student quizzes select failed:', {
+        activePackId,
+        limit,
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      throw error;
+    }
+    return data || [];
+  });
+};
+
+export const listStudentRecordings = async (activePackId, limit) => {
+  if (!activePackId) return [];
+  const key = cacheKey('student:recordings', activePackId, limit || 'all');
+  return cached(key, async () => {
+    if (!isSupabaseConfigured) {
+      const demoData = await getDemoData();
+      const recordings = demoData.recordings.filter((recording) => recording.is_visible && recording.pack_id === activePackId);
+      return limit ? recordings.slice(0, limit) : recordings;
+    }
+    let query = supabase
+      .from('recordings')
+      .select('id, title, description, subject_id, youtube_video_url, youtube_playlist_url, session_date, is_visible, subjects(name)')
+      .eq('is_visible', true)
+      .eq('pack_id', activePackId)
+      .order('session_date', { ascending: false });
+    if (limit) query = query.limit(limit);
+    const { data, error } = await query;
+    if (error) {
+      console.error('Supabase student recordings select failed:', {
+        activePackId,
+        limit,
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      throw error;
+    }
+    return data || [];
+  });
+};
+
+export const listStudentAttempts = async (studentId, limit) => {
+  if (!studentId) return [];
+  const key = cacheKey('student:attempts', studentId, limit || 'all');
+  return cached(key, async () => {
+    if (!isSupabaseConfigured) {
+      const demoData = await getDemoData();
+      const attempts = demoData.attempts.filter((attempt) => attempt.student_id === studentId || studentId === 'student-demo');
+      return limit ? attempts.slice(0, limit) : attempts;
+    }
+    let query = supabase
+      .from('quiz_attempts')
+      .select('id, quiz_id, student_id, score, total_questions, percentage, created_at, quizzes(title, subject_id, subjects(name))')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false });
+    if (limit) query = query.limit(limit);
+    const { data, error } = await query;
+    if (error) {
+      console.error('Supabase student attempts select failed:', {
+        studentId,
+        limit,
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      throw error;
+    }
+    return data || [];
+  }, 30 * 1000);
+};
+
+export const getStudentDashboardSummary = async ({ activePackId, studentId }) => {
+  if (!activePackId || !studentId) {
+    return { nextSessions: [], recentQuizzes: [], recentAttempts: [] };
+  }
+  const key = cacheKey('student:dashboard', activePackId, studentId);
+  return cached(key, async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (!isSupabaseConfigured) {
+      const demoData = await getDemoData();
+      return {
+        nextSessions: demoData.sessions
+          .filter((session) => session.is_visible && session.pack_id === activePackId && session.session_date >= today)
+          .slice(0, 3),
+        recentQuizzes: demoData.quizzes.filter((quiz) => quiz.is_published && quiz.pack_id === activePackId).slice(0, 3),
+        recentAttempts: demoData.attempts.filter((attempt) => attempt.student_id === studentId || studentId === 'student-demo').slice(0, 3),
+      };
+    }
+    const [sessionsResult, quizzesResult, attemptsResult] = await Promise.all([
+      supabase
+        .from('sessions')
+        .select('id, title, session_date, start_time, end_time, subject_id, subjects(name)')
+        .eq('is_visible', true)
+        .eq('pack_id', activePackId)
+        .gte('session_date', today)
+        .order('session_date')
+        .order('start_time')
+        .limit(3),
+      supabase
+        .from('quizzes')
+        .select('id, title, duration_minutes, subject_id, created_at, subjects(name)')
+        .eq('is_published', true)
+        .eq('pack_id', activePackId)
+        .order('created_at', { ascending: false })
+        .limit(3),
+      supabase
+        .from('quiz_attempts')
+        .select('id, quiz_id, score, total_questions, percentage, created_at, quizzes(title)')
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false })
+        .limit(3),
+    ]);
+
+    const results = [
+      ['sessions', sessionsResult],
+      ['quizzes', quizzesResult],
+      ['attempts', attemptsResult],
+    ];
+    const failed = results.find(([, result]) => result.error);
+    if (failed) {
+      const [label, result] = failed;
+      console.error(`Supabase student dashboard ${label} select failed:`, {
+        activePackId,
+        studentId,
+        error: result.error,
+        message: result.error.message,
+        details: result.error.details,
+        hint: result.error.hint,
+        code: result.error.code,
+      });
+      throw result.error;
+    }
+
+    return {
+      nextSessions: sessionsResult.data || [],
+      recentQuizzes: quizzesResult.data || [],
+      recentAttempts: attemptsResult.data || [],
+    };
+  }, 30 * 1000);
+};
+
 export const getStudentPack = async (studentId) => {
   if (!studentId) return null;
+  const key = cacheKey('student:pack', studentId);
+  return cached(key, async () => {
   if (!isSupabaseConfigured) {
     const demoData = await getDemoData();
     return demoData.studentPacks.find((item) => item.student_id === studentId) || demoData.studentPacks[0];
@@ -145,7 +403,7 @@ export const getStudentPack = async (studentId) => {
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from('student_packs')
-    .select('id, student_id, pack_id, status, start_date, end_date, created_at')
+    .select('id, student_id, pack_id, status, start_date, end_date, created_at, packs(name)')
     .eq('student_id', studentId)
     .eq('status', 'active')
     .order('created_at', { ascending: false });
@@ -164,6 +422,7 @@ export const getStudentPack = async (studentId) => {
 
   const activePack = (data || []).find((item) => !item.end_date || item.end_date >= today) || null;
   return activePack;
+  });
 };
 
 export const getQuizWithQuestions = async (quizId) => {
@@ -249,6 +508,7 @@ export const saveQuizAttempt = async ({ quizId, studentId, score, totalQuestions
     const { error: answersError } = await supabase.from('quiz_attempt_answers').insert(rows);
     if (answersError) throw answersError;
   }
+  clearStudentCache();
   return attempt;
 };
 

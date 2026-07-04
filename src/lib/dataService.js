@@ -351,6 +351,44 @@ export const invokeFunction = async (name, body) => {
   return data;
 };
 
+export const deleteStudent = async (studentId) => {
+  if (!studentId) throw new Error('student_id requis.');
+  if (!isSupabaseConfigured) {
+    return {
+      success: true,
+      message: 'Étudiant supprimé avec succès.',
+    };
+  }
+
+  const { data, error } = await supabase.functions.invoke('delete-student', {
+    body: { student_id: studentId },
+  });
+
+  if (error || data?.error || data?.success === false) {
+    let functionError = data?.error;
+    if (!functionError && error?.context) {
+      try {
+        const response = await error.context.json();
+        functionError = response?.error;
+      } catch {
+        functionError = null;
+      }
+    }
+    console.error('Delete student function failed:', {
+      studentId,
+      error,
+      data,
+      message: functionError || error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+    });
+    throw new Error(functionError || error?.message || 'Impossible de supprimer cet étudiant.');
+  }
+
+  return data;
+};
+
 export const getDocumentSignedUrl = async (documentId) => {
   const data = await invokeFunction('generate-document-signed-url', { document_id: documentId });
   return data?.signedUrl || data?.signed_url || '#';

@@ -24,7 +24,7 @@ export const requireAdmin = async (authHeader: string | null) => {
     .select('id, role')
     .eq('id', userData.user.id)
     .single();
-  if (profileError || profile?.role !== 'admin') throw new Error('Acces admin requis.');
+  if (profileError || profile?.role !== 'admin') throw new Error('Accès admin requis.');
   return { user: userData.user, adminClient, userClient };
 };
 

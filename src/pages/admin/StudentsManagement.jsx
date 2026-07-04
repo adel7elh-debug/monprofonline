@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
+import AlertMessage from '../../components/AlertMessage';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import FormInput from '../../components/FormInput';
 import Modal from '../../components/Modal';
 import Table from '../../components/Table';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { invokeFunction, listProfiles } from '../../lib/dataService';
+import { useAuth } from '../../context/AuthContext';
+import { deleteStudent, invokeFunction, listProfiles } from '../../lib/dataService';
 
 export default function StudentsManagement() {
+  const { profile } = useAuth();
   const [profiles, setProfiles] = useState(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('');
   const [passwordModal, setPasswordModal] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [message, setMessage] = useState(null);
   const load = () => listProfiles().then(setProfiles);
   useEffect(() => { load(); }, []);
   const rows = useMemo(() => (profiles || [])
@@ -29,6 +35,22 @@ export default function StudentsManagement() {
     }
     load();
   };
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setMessage(null);
+    try {
+      const response = await deleteStudent(deleteTarget.id);
+      setProfiles((current) => (current || []).filter((item) => item.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      setMessage({ type: 'success', text: response?.message || 'Étudiant supprimé avec succès.' });
+      load();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Impossible de supprimer cet étudiant.' });
+    } finally {
+      setDeleting(false);
+    }
+  };
   const closePasswordModal = () => setPasswordModal(null);
   const copyPassword = async () => {
     if (passwordModal?.temporary_password) {
@@ -38,6 +60,11 @@ export default function StudentsManagement() {
   if (!profiles) return <LoadingSpinner />;
   return (
     <div>
+      {message ? (
+        <div className="mb-4">
+          <AlertMessage type={message.type}>{message.text}</AlertMessage>
+        </div>
+      ) : null}
       <h1 className="text-3xl font-black text-navy">Gestion des étudiants</h1>
       <div className="mt-5 grid gap-3 md:grid-cols-3">
         <FormInput label="Recherche" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -68,6 +95,18 @@ export default function StudentsManagement() {
                   <Button variant="outline" onClick={() => setAccess(row, 'inactive')}>Désactiver</Button>
                   <Button variant="outline" onClick={() => setAccess(row, 'expired')}>Expirer</Button>
                   <Button variant="outline" onClick={() => resetPassword(row)}>Réinitialiser le mot de passe</Button>
+                  {profile?.role === 'admin' ? (
+                    <Button
+                      variant="danger"
+                      className="border border-red-200"
+                      onClick={() => {
+                        setMessage(null);
+                        setDeleteTarget(row);
+                      }}
+                    >
+                      Supprimer
+                    </Button>
+                  ) : null}
                 </div>
               ),
             },
@@ -92,6 +131,25 @@ export default function StudentsManagement() {
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={copyPassword}>Copier le mot de passe</Button>
             <Button onClick={closePasswordModal}>Fermer</Button>
+          </div>
+        </div>
+      </Modal>
+      <Modal open={Boolean(deleteTarget)} title="Supprimer cet étudiant ?" onClose={() => setDeleteTarget(null)}>
+        <div className="grid gap-4">
+          <p className="text-sm text-slate-700">
+            Cette action supprimera l’accès de l’étudiant et ses données associées. Cette action est irréversible.
+          </p>
+          <div className="rounded-md border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-900">
+            <p className="font-semibold">{deleteTarget?.full_name || 'Étudiant sélectionné'}</p>
+            {deleteTarget?.email ? <p>{deleteTarget.email}</p> : null}
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Annuler
+            </Button>
+            <Button variant="danger" onClick={confirmDelete} loading={deleting}>
+              Confirmer la suppression
+            </Button>
           </div>
         </div>
       </Modal>

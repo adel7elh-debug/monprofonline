@@ -22,38 +22,9 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    let mounted = true;
-    const loadSession = async () => {
-      if (!isSupabaseConfigured) {
-        const stored = localStorage.getItem('monprof-demo-user');
-        if (stored && mounted) {
-          const parsed = JSON.parse(stored);
-          setUser(parsed.user);
-          setProfile(parsed.profile);
-        }
-        setLoading(false);
-        return;
-      }
-
-      const { data } = await supabase.auth.getSession();
-      if (mounted) await hydrateUser(data.session?.user || null);
-      const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        await hydrateUser(session?.user || null);
-      });
-      setLoading(false);
-      return () => listener.subscription.unsubscribe();
-    };
-
-    const cleanupPromise = loadSession();
-    return () => {
-      mounted = false;
-      cleanupPromise.then((cleanup) => cleanup?.());
-    };
-  }, []);
+  const isDev = import.meta.env.DEV;
 
   const hydrateUser = async (authUser) => {
     setUser(authUser);
@@ -61,8 +32,9 @@ export function AuthProvider({ children }) {
       setProfile(null);
       setProfileError(null);
       setProfileLoading(false);
-      return;
+      return null;
     }
+
     setProfileLoading(true);
     setProfileError(null);
     const { data, error } = await supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle();
@@ -78,7 +50,7 @@ export function AuthProvider({ children }) {
       setProfile(null);
       setProfileError(error);
       setProfileLoading(false);
-      return;
+      return null;
     }
     if (!data) {
       const missingProfileError = new Error('Profil introuvable pour cet utilisateur');
@@ -89,11 +61,75 @@ export function AuthProvider({ children }) {
       setProfile(null);
       setProfileError(missingProfileError);
       setProfileLoading(false);
-      return;
+      return null;
     }
     setProfile(data);
     setProfileLoading(false);
+    return data;
   };
+
+  useEffect(() => {
+    let mounted = true;
+    let subscription;
+
+    const loadSession = async () => {
+      setAuthLoading(true);
+
+      if (!isSupabaseConfigured) {
+        const stored = localStorage.getItem('monprof-demo-user');
+        if (stored && mounted) {
+          const parsed = JSON.parse(stored);
+          setUser(parsed.user);
+          setProfile(parsed.profile);
+        }
+        setAuthLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.auth.getSession();
+      const session = data?.session || null;
+
+      if (error) {
+        console.error('Supabase session load failed:', error);
+      }
+
+      if (isDev) {
+        console.log('AUTH SESSION CHECK', {
+          hasSession: Boolean(session),
+          userEmail: session?.user?.email,
+          authLoading: true,
+          profileLoading,
+          profile,
+        });
+      }
+
+      if (mounted) await hydrateUser(session?.user || null);
+
+      const { data: listener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+        if (isDev) console.log('AUTH STATE CHANGE', event);
+        if (!mounted) return;
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          setProfileError(null);
+          setProfileLoading(false);
+          setAuthLoading(false);
+          return;
+        }
+        await hydrateUser(nextSession?.user || null);
+        if (mounted) setAuthLoading(false);
+      });
+      subscription = listener.subscription;
+
+      if (mounted) setAuthLoading(false);
+    };
+
+    loadSession();
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   const signIn = async (email, password) => {
     if (!isSupabaseConfigured) {
@@ -108,16 +144,8 @@ export function AuthProvider({ children }) {
     }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    const { data: nextProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
-    if (profileError) throw profileError;
-    setUser(data.user);
-    setProfile(nextProfile);
-    setProfileError(null);
-    setProfileLoading(false);
+    const nextProfile = await hydrateUser(data.user);
+    if (!nextProfile) throw new Error('Profil introuvable pour cet utilisateur');
     return nextProfile;
   };
 
@@ -137,12 +165,23 @@ export function AuthProvider({ children }) {
     setProfile(null);
     setProfileError(null);
     setProfileLoading(false);
+    setAuthLoading(false);
     navigate('/login');
   };
 
   const value = useMemo(
-    () => ({ user, profile, profileLoading, profileError, loading, signIn, signOut, resetPassword }),
-    [user, profile, profileLoading, profileError, loading],
+    () => ({
+      user,
+      profile,
+      profileLoading,
+      profileError,
+      authLoading,
+      loading: authLoading,
+      signIn,
+      signOut,
+      resetPassword,
+    }),
+    [user, profile, profileLoading, profileError, authLoading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

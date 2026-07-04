@@ -17,9 +17,9 @@ const getDashboardLabel = (profile) => {
 };
 
 export default function Header({ onMenu }) {
-  const { user, profile, profileLoading, loading, signOut } = useAuth();
+  const { user, profile, profileLoading, authLoading, signOut } = useAuth();
   const dashboardPath = getDashboardPath(profile);
-  const dashboardLoading = loading || profileLoading || !dashboardPath;
+  const dashboardLoading = authLoading || profileLoading || !dashboardPath;
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -45,7 +45,11 @@ export default function Header({ onMenu }) {
           </NavLink>
         </nav>
         <div className="hidden items-center gap-2 md:flex">
-          {user ? (
+          {authLoading ? (
+            <Button variant="outline" disabled>
+              Chargement...
+            </Button>
+          ) : user ? (
             <>
               <span className="text-sm text-slate-600">{profile?.full_name || user.email}</span>
               {dashboardPath ? (

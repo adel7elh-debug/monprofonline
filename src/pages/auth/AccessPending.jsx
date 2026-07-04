@@ -1,4 +1,5 @@
 import AlertMessage from '../../components/AlertMessage';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import { useAuth } from '../../context/AuthContext';
 
 const statusLabels = {
@@ -14,7 +15,9 @@ const roleLabels = {
 };
 
 export default function AccessPending() {
-  const { user, profile } = useAuth();
+  const { user, profile, profileLoading, authLoading } = useAuth();
+
+  if (authLoading || profileLoading) return <LoadingSpinner />;
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-12">

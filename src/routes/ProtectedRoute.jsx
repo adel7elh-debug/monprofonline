@@ -3,10 +3,10 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProtectedRoute() {
-  const { user, profile, profileLoading, profileError, loading } = useAuth();
+  const { user, profile, profileLoading, profileError, authLoading } = useAuth();
   const location = useLocation();
 
-  if (loading || profileLoading) return <LoadingSpinner />;
+  if (authLoading || profileLoading) return <LoadingSpinner />;
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
   if (!profile && profileError) {
     return (

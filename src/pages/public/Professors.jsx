@@ -35,20 +35,20 @@ const professors = [
       'Mon objectif est d’aider les étudiants à comprendre les notions essentielles, à s’entraîner avec méthode et à préparer les concours de Master avec confiance.',
   },
   {
-    name: 'Oumaima Hafid',
+    name: 'Oumaima Hafide',
     initials: 'OH',
     photo: '/images/professors/oumaima-hafid.jpg',
     specialty:
-      'Sciences de gestion, accompagnement des TPME, formation professionnelle et préparation aux concours.',
+      'Docteure en sciences de gestion, accompagnement des TPME, formation professionnelle et préparation aux concours.',
     presentation:
-      'Doctorante en sciences de gestion, cheffe de projet chez séminaire.com, conseillère en accompagnement des TPME et formatrice en gestion.',
+      'Docteure en sciences de gestion, chef de projet chez séminaire.com, conseillère en accompagnement des TPME et formatrice en gestion, avec plus de 9 ans d’expérience en formation professionnelle et cours de soutien.',
     experiences: [
-      'Doctorante en sciences de gestion',
-      'Cheffe de projet chez séminaire.com',
+      'Docteure en sciences de gestion',
+      'Chef de projet chez séminaire.com',
       'Conseillère en accompagnement des TPME',
       'Formatrice en gestion',
-      'Expérience en formation professionnelle',
-      'Expérience en cours de soutien',
+      'Plus de 9 ans d’expérience en formation professionnelle',
+      'Expérience solide dans les cours de soutien',
     ],
     subjects: [
       'Gestion financière',
@@ -56,7 +56,7 @@ const professors = [
       'Marketing',
       'Management stratégique',
       'Contrôle de gestion',
-      'Méthodologie concours',
+      'Accompagnement des TPME',
     ],
     message:
       'Mon objectif est d’accompagner les étudiants avec une méthode claire, des exemples pratiques et une préparation orientée réussite aux concours de Master.',

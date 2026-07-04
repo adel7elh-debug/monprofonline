@@ -18,9 +18,9 @@ const getDashboardLabel = (profile) => {
 
 export default function PublicLayout() {
   const [open, setOpen] = useState(false);
-  const { user, profile, profileLoading, loading, signOut } = useAuth();
+  const { user, profile, profileLoading, authLoading, signOut } = useAuth();
   const dashboardPath = getDashboardPath(profile);
-  const dashboardLoading = loading || profileLoading || !dashboardPath;
+  const dashboardLoading = authLoading || profileLoading || !dashboardPath;
   const closeMenu = () => setOpen(false);
   const logout = () => {
     closeMenu();
@@ -38,7 +38,11 @@ export default function PublicLayout() {
             <Link to="/inscription" onClick={closeMenu}>Inscription</Link>
             <Link to="/contact" onClick={closeMenu}>Contact</Link>
             <Link to="/faq" onClick={closeMenu}>FAQ</Link>
-            {user ? (
+            {authLoading ? (
+              <Button className="mt-2 w-full" variant="outline" disabled>
+                Chargement...
+              </Button>
+            ) : user ? (
               <div className="mt-2 grid gap-2 border-t border-slate-200 pt-3">
                 <span className="text-sm font-semibold text-slate-600">{profile?.full_name || user.email}</span>
                 {dashboardPath ? (

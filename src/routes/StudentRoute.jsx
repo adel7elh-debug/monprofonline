@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import AlertMessage from '../components/AlertMessage';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
@@ -19,10 +19,11 @@ const roleLabels = {
 };
 
 export default function StudentRoute() {
-  const { user, profile, profileLoading, profileError, loading } = useAuth();
+  const { user, profile, profileLoading, profileError, authLoading } = useAuth();
   const [pack, setPack] = useState(null);
   const [accessError, setAccessError] = useState(null);
   const [checking, setChecking] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     setChecking(true);
@@ -53,7 +54,8 @@ export default function StudentRoute() {
       .finally(() => setChecking(false));
   }, [profile?.id, profile?.role, profile?.access_status]);
 
-  if (loading || profileLoading || checking) return <LoadingSpinner />;
+  if (authLoading || profileLoading || checking) return <LoadingSpinner />;
+  if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
   if (user && !profile && profileError) {
     return (
       <div className="mx-auto max-w-2xl p-6">

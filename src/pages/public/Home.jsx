@@ -69,6 +69,9 @@ export default function Home() {
               <img
                 src={images.hero}
                 alt="Étudiants universitaires en révision avec ordinateur et cahiers"
+                width="1280"
+                height="853"
+                fetchPriority="high"
                 className="h-[420px] w-full object-cover sm:h-[520px]"
               />
               <div className="absolute inset-0 bg-navy/30" />
@@ -112,6 +115,10 @@ export default function Home() {
             <img
               src={images.online}
               alt="Étudiant suivant un cours en ligne sur ordinateur portable"
+              width="1200"
+              height="700"
+              loading="lazy"
+              decoding="async"
               className="h-full min-h-[360px] w-full object-cover"
             />
             <div className="absolute inset-0 bg-navy/15" />
@@ -164,6 +171,10 @@ export default function Home() {
           <img
             src={images.group}
             alt="Groupe d’étudiants universitaires qui révisent ensemble"
+            width="1200"
+            height="803"
+            loading="lazy"
+            decoding="async"
             className="h-64 w-full object-cover md:h-full"
           />
           <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-center lg:p-8">

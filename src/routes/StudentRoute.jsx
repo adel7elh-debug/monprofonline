@@ -37,7 +37,6 @@ export default function StudentRoute() {
     getStudentPack(profile.id)
       .then((activePack) => {
         setPack(activePack);
-        console.log('Student access check', { profile, activePack });
       })
       .catch((error) => {
         console.error('Student access check failed:', {
@@ -53,11 +52,6 @@ export default function StudentRoute() {
       })
       .finally(() => setChecking(false));
   }, [profile?.id, profile?.role, profile?.access_status]);
-
-  console.log('STUDENT ROUTE CHECK', {
-    profile,
-    activePack: pack,
-  });
 
   if (loading || profileLoading || checking) return <LoadingSpinner />;
   if (user && !profile && profileError) {

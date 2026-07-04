@@ -5,11 +5,7 @@ import { useAuth } from '../context/AuthContext';
 export default function ProtectedRoute() {
   const { user, profile, profileLoading, profileError, loading } = useAuth();
   const location = useLocation();
-  console.log('PROTECTED ROUTE CHECK', {
-    user,
-    profile,
-    loading,
-  });
+
   if (loading || profileLoading) return <LoadingSpinner />;
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
   if (!profile && profileError) {

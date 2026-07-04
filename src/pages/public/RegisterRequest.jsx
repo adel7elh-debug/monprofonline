@@ -58,8 +58,6 @@ export default function RegisterRequest() {
         status: 'pending',
       };
 
-      console.log('Submitting registration request to Supabase', formData);
-
       const { error } = await supabase.from('registration_requests').insert(formData);
       if (error) {
         console.error('Registration insert error:', error);

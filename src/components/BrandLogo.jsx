@@ -9,6 +9,9 @@ export default function BrandLogo({ className = '', imageClassName = 'h-16 w-aut
       <img
         src="/images/logo-monprof.png"
         alt="MonProf Online"
+        width="425"
+        height="222"
+        decoding="async"
         className={`object-contain ${imageClassName} ${className}`}
         onError={() => setFailed(true)}
       />

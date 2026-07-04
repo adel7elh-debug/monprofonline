@@ -1,7 +1,16 @@
-import { demoData } from './demoData';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
-const fallback = (key) => demoData[key] || [];
+let demoDataPromise;
+
+const getDemoData = async () => {
+  if (!demoDataPromise) demoDataPromise = import('./demoData').then((module) => module.demoData);
+  return demoDataPromise;
+};
+
+const fallback = async (key) => {
+  const demoData = await getDemoData();
+  return demoData[key] || [];
+};
 
 const safeSelect = async (table, queryBuilder, fallbackKey) => {
   if (!isSupabaseConfigured) return fallback(fallbackKey);
@@ -78,6 +87,7 @@ export const getAdminSessions = () =>
 export const getStudentSessions = async (activePackId) => {
   if (!activePackId) return [];
   if (!isSupabaseConfigured) {
+    const demoData = await getDemoData();
     return demoData.sessions.filter((session) => session.is_visible && session.pack_id === activePackId);
   }
   const { data, error } = await supabase
@@ -129,6 +139,7 @@ export const listAttempts = () =>
 export const getStudentPack = async (studentId) => {
   if (!studentId) return null;
   if (!isSupabaseConfigured) {
+    const demoData = await getDemoData();
     return demoData.studentPacks.find((item) => item.student_id === studentId) || demoData.studentPacks[0];
   }
   const today = new Date().toISOString().slice(0, 10);
@@ -152,12 +163,12 @@ export const getStudentPack = async (studentId) => {
   }
 
   const activePack = (data || []).find((item) => !item.end_date || item.end_date >= today) || null;
-  console.log('Student pack query result', { studentId, today, rows: data || [], activePack });
   return activePack;
 };
 
 export const getQuizWithQuestions = async (quizId) => {
   if (!isSupabaseConfigured) {
+    const demoData = await getDemoData();
     const quiz = demoData.quizzes.find((item) => item.id === quizId);
     const questions = demoData.questions.filter((item) => item.quiz_id === quizId);
     return { quiz, questions };
@@ -271,7 +282,6 @@ export const deleteRow = async (table, id) => {
 
 export const createSession = async (sessionData) => {
   if (!isSupabaseConfigured) return { id: crypto.randomUUID(), ...sessionData };
-  console.log('Submitting session to Supabase', sessionData);
   const { data, error } = await supabase.from('sessions').insert(sessionData).select().single();
   if (error) {
     console.error('Supabase session insert failed:', {
@@ -289,7 +299,6 @@ export const createSession = async (sessionData) => {
 
 export const updateSession = async (id, sessionData) => {
   if (!isSupabaseConfigured) return { id, ...sessionData };
-  console.log('Updating session in Supabase', { id, sessionData });
   const { data, error } = await supabase.from('sessions').update(sessionData).eq('id', id).select().single();
   if (error) {
     console.error('Supabase session update failed:', {

@@ -1,11 +1,18 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { demoData } from '../lib/demoData';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
 const AuthContext = createContext(null);
 
-const demoProfileForEmail = (email) => {
+let demoDataPromise;
+
+const getDemoData = async () => {
+  if (!demoDataPromise) demoDataPromise = import('../lib/demoData').then((module) => module.demoData);
+  return demoDataPromise;
+};
+
+const demoProfileForEmail = async (email) => {
+  const demoData = await getDemoData();
   if (email?.toLowerCase().includes('admin')) return demoData.profiles[0];
   return demoData.profiles[1];
 };
@@ -17,12 +24,6 @@ export function AuthProvider({ children }) {
   const [profileError, setProfileError] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  console.log('AUTH CHECK', {
-    loading,
-    userEmail: user?.email,
-    profile,
-  });
 
   useEffect(() => {
     let mounted = true;
@@ -97,7 +98,7 @@ export function AuthProvider({ children }) {
   const signIn = async (email, password) => {
     if (!isSupabaseConfigured) {
       const nextUser = { id: email?.includes('admin') ? 'admin-demo' : 'student-demo', email };
-      const nextProfile = demoProfileForEmail(email);
+      const nextProfile = await demoProfileForEmail(email);
       setUser(nextUser);
       setProfile(nextProfile);
       setProfileError(null);

@@ -10,6 +10,7 @@ import AlertMessage from './components/AlertMessage';
 import LoadingSpinner from './components/LoadingSpinner';
 
 const Packs = lazy(() => import('./pages/public/Packs'));
+const Professors = lazy(() => import('./pages/public/Professors'));
 const RegisterRequest = lazy(() => import('./pages/public/RegisterRequest'));
 const Contact = lazy(() => import('./pages/public/Contact'));
 const FAQ = lazy(() => import('./pages/public/FAQ'));
@@ -56,6 +57,7 @@ export default function App() {
         <Route element={<PublicLayout />}>
           <Route index element={<Home />} />
           <Route path="packs" element={<Packs />} />
+          <Route path="professeurs" element={<Professors />} />
           <Route path="inscription" element={<RegisterRequest />} />
           <Route path="contact" element={<Contact />} />
           <Route path="faq" element={<FAQ />} />

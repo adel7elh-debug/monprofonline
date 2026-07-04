@@ -34,6 +34,7 @@ export default function PublicLayout() {
         <div className="border-b border-slate-200 bg-white px-4 py-3 md:hidden">
           <div className="grid gap-2 text-sm font-semibold text-navy">
             <Link to="/packs" onClick={closeMenu}>Packs</Link>
+            <Link to="/professeurs" onClick={closeMenu}>Nos profs</Link>
             <Link to="/inscription" onClick={closeMenu}>Inscription</Link>
             <Link to="/contact" onClick={closeMenu}>Contact</Link>
             <Link to="/faq" onClick={closeMenu}>FAQ</Link>

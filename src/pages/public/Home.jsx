@@ -166,6 +166,24 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="bg-white py-16">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 md:grid-cols-[1fr_auto] md:items-center lg:px-8">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-gold">Équipe pédagogique</p>
+            <h2 className="mt-2 text-3xl font-black text-navy">Des professeurs pour vous accompagner</h2>
+            <p className="mt-3 max-w-3xl leading-7 text-slate-600">
+              Nos séances sont assurées par des professeurs et intervenants expérimentés, avec une approche claire, pratique et orientée concours.
+            </p>
+          </div>
+          <Link to="/professeurs">
+            <Button>
+              Découvrir les profs
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <Card className="grid overflow-hidden md:grid-cols-[0.9fr_1.1fr]">
           <img

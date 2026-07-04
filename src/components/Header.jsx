@@ -31,6 +31,9 @@ export default function Header({ onMenu }) {
           <NavLink to="/packs" className={({ isActive }) => (isActive ? 'text-royal' : '')}>
             Packs
           </NavLink>
+          <NavLink to="/professeurs" className={({ isActive }) => (isActive ? 'text-royal' : '')}>
+            Nos profs
+          </NavLink>
           <NavLink to="/inscription" className={({ isActive }) => (isActive ? 'text-royal' : '')}>
             Inscription
           </NavLink>

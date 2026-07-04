@@ -75,7 +75,7 @@ function ProfessorPhoto({ professor }) {
 
   if (failed) {
     return (
-      <div className="flex h-72 w-full items-center justify-center rounded-xl bg-gradient-to-br from-navy to-royal text-5xl font-black text-gold md:h-full">
+      <div className="flex h-40 w-40 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-navy to-royal text-4xl font-black text-gold md:h-48 md:w-48">
         {professor.initials}
       </div>
     );
@@ -89,7 +89,7 @@ function ProfessorPhoto({ professor }) {
       height="620"
       loading="lazy"
       decoding="async"
-      className="h-72 w-full rounded-xl object-cover md:h-full"
+      className="h-40 w-40 shrink-0 rounded-2xl object-cover md:h-48 md:w-48"
       onError={() => setFailed(true)}
     />
   );
@@ -98,9 +98,11 @@ function ProfessorPhoto({ professor }) {
 function ProfessorCard({ professor }) {
   return (
     <Card className="overflow-hidden p-5 shadow-sm">
-      <div className="grid gap-6 md:grid-cols-[260px_1fr]">
-        <ProfessorPhoto professor={professor} />
-        <div>
+      <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
+        <div className="flex w-full justify-center md:w-52 md:justify-start">
+          <ProfessorPhoto professor={professor} />
+        </div>
+        <div className="w-full">
           <Badge tone="active">Intervenant MonProf Online</Badge>
           <h2 className="mt-4 text-2xl font-black text-navy">{professor.name}</h2>
           <p className="mt-3 rounded-lg bg-mist p-4 text-sm font-semibold leading-6 text-slate-700">

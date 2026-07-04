@@ -526,6 +526,55 @@ export const createRow = async (table, payload) => {
   return data;
 };
 
+export const importQuizQuestions = async ({ rows, subjects, quizzes, defaultPackId }) => {
+  const subjectByName = new Map(subjects.map((subject) => [subject.name.trim().toLowerCase(), subject]));
+  const quizByTitle = new Map(quizzes.map((quiz) => [quiz.title.trim().toLowerCase(), quiz]));
+  let imported = 0;
+
+  for (const row of rows) {
+    const subject = subjectByName.get(row.subject.trim().toLowerCase());
+    if (!subject) throw new Error(`Ligne ${row.line} : matière introuvable.`);
+
+    const quizKey = row.quiz_title.trim().toLowerCase();
+    let quiz = quizByTitle.get(quizKey);
+    if (!quiz) {
+      quiz = await createRow('quizzes', {
+        title: row.quiz_title.trim(),
+        description: '',
+        subject_id: subject.id,
+        pack_id: defaultPackId,
+        duration_minutes: 30,
+        is_published: false,
+      });
+      quizByTitle.set(quizKey, quiz);
+    }
+
+    const createdQuestion = await createRow('questions', {
+      quiz_id: quiz.id,
+      question_text: row.question.trim(),
+      explanation: row.explanation?.trim() || '',
+      display_order: imported,
+    });
+
+    const answers = [
+      ['A', row.answer_a],
+      ['B', row.answer_b],
+      ['C', row.answer_c],
+      ['D', row.answer_d],
+    ];
+    await Promise.all(answers.map(([letter, answerText]) =>
+      createRow('answers', {
+        question_id: createdQuestion.id,
+        answer_text: answerText.trim(),
+        is_correct: row.correct_answer === letter,
+      }),
+    ));
+    imported += 1;
+  }
+
+  return { imported };
+};
+
 export const updateRow = async (table, id, payload) => {
   if (!isSupabaseConfigured) return { id, ...payload };
   const { data, error } = await supabase.from(table).update(payload).eq('id', id).select().single();

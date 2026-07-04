@@ -270,28 +270,54 @@ export const deleteRow = async (table, id) => {
 };
 
 export const createSession = async (sessionData) => {
-  try {
-    return await createRow('sessions', sessionData);
-  } catch (error) {
-    console.error('Supabase session insert failed:', error);
+  if (!isSupabaseConfigured) return { id: crypto.randomUUID(), ...sessionData };
+  console.log('Submitting session to Supabase', sessionData);
+  const { data, error } = await supabase.from('sessions').insert(sessionData).select().single();
+  if (error) {
+    console.error('Supabase session insert failed:', {
+      payload: sessionData,
+      error,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
     throw error;
   }
+  return data;
 };
 
 export const updateSession = async (id, sessionData) => {
-  try {
-    return await updateRow('sessions', id, sessionData);
-  } catch (error) {
-    console.error('Supabase session update failed:', { id, error });
+  if (!isSupabaseConfigured) return { id, ...sessionData };
+  console.log('Updating session in Supabase', { id, sessionData });
+  const { data, error } = await supabase.from('sessions').update(sessionData).eq('id', id).select().single();
+  if (error) {
+    console.error('Supabase session update failed:', {
+      id,
+      payload: sessionData,
+      error,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
     throw error;
   }
+  return data;
 };
 
 export const deleteSession = async (id) => {
   try {
     return await deleteRow('sessions', id);
   } catch (error) {
-    console.error('Supabase session delete failed:', { id, error });
+    console.error('Supabase session delete failed:', {
+      id,
+      error,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
     throw error;
   }
 };

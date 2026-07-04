@@ -75,6 +75,16 @@ const matchesView = (session, view) => {
   return session.session_date >= range.start && session.session_date <= range.end;
 };
 
+const normalizeDate = (value) => (value ? String(value).slice(0, 10) : '');
+const normalizeTime = (value) => (value ? String(value).slice(0, 5) : '');
+const normalizeOptionalText = (value) => {
+  const text = String(value || '').trim();
+  return text || null;
+};
+
+const getSupabaseErrorMessage = (error) =>
+  error?.message || error?.details || error?.hint || 'Erreur Supabase inconnue.';
+
 export default function SessionsManagement() {
   const [data, setData] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -140,12 +150,17 @@ export default function SessionsManagement() {
     setMessage(null);
     setError(null);
     const payload = {
-      ...form,
+      title: String(form.title || '').trim(),
+      description: normalizeOptionalText(form.description),
       subject_id: form.subject_id || null,
       pack_id: form.pack_id || null,
-      end_time: form.end_time || null,
-      meet_link: form.meet_link || null,
-      replay_link: form.replay_link || null,
+      session_date: normalizeDate(form.session_date),
+      start_time: normalizeTime(form.start_time),
+      end_time: form.end_time ? normalizeTime(form.end_time) : null,
+      meet_link: normalizeOptionalText(form.meet_link),
+      replay_link: normalizeOptionalText(form.replay_link),
+      status: form.status || 'scheduled',
+      is_visible: Boolean(form.is_visible),
     };
 
     try {
@@ -159,8 +174,16 @@ export default function SessionsManagement() {
       resetForm();
       await load();
     } catch (err) {
-      console.error('Admin session save error:', err);
-      setError('Impossible d’enregistrer la séance. Vérifiez les champs et vos droits Supabase.');
+      console.error('Admin session save error:', {
+        editingId,
+        payload,
+        error: err,
+        message: err?.message,
+        details: err?.details,
+        hint: err?.hint,
+        code: err?.code,
+      });
+      setError(`Erreur Supabase : ${getSupabaseErrorMessage(err)}`);
     } finally {
       setSaving(false);
     }

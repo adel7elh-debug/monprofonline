@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 import Button from './Button';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,7 +9,9 @@ export default function Sidebar({ items, title, onNavigate }) {
   return (
     <aside className="flex h-full w-72 flex-col border-r border-slate-200 bg-navy text-white">
       <div className="border-b border-white/10 px-5 py-5">
-        <p className="text-xs font-bold uppercase tracking-wide text-gold">MonProf Online</p>
+        <div className="flex items-center rounded-md bg-white px-3 py-3">
+          <BrandLogo imageClassName="h-16 w-auto md:h-20" />
+        </div>
         <h2 className="mt-1 text-lg font-black">{title}</h2>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">

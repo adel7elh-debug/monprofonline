@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom';
-import { GraduationCap, LogOut, Menu } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 import Button from './Button';
+import BrandLogo from './BrandLogo';
 import { useAuth } from '../context/AuthContext';
 
 const getDashboardPath = (profile) => {
@@ -22,12 +23,9 @@ export default function Header({ onMenu }) {
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2 font-black text-navy">
-          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-royal text-white">
-            <GraduationCap className="h-6 w-6" />
-          </span>
-          <span>MonProf Online</span>
+      <div className="mx-auto flex min-h-[80px] max-w-7xl items-center justify-between px-4 py-2 sm:px-6 md:min-h-[92px] lg:min-h-[104px] lg:px-8">
+        <Link to="/" className="flex min-w-0 items-center">
+          <BrandLogo imageClassName="h-16 w-auto md:h-20 lg:h-24" />
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 md:flex">
           <NavLink to="/packs" className={({ isActive }) => (isActive ? 'text-royal' : '')}>

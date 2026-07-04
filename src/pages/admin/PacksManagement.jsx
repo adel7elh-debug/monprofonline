@@ -17,6 +17,7 @@ export default function PacksManagement() {
     setForm({ name: '', price: 1300, description: '', is_active: true });
     load();
   };
+  const resetForm = () => setForm({ name: '', price: 1300, description: '', is_active: true });
   if (!packs) return <LoadingSpinner />;
   return (
     <div>
@@ -26,7 +27,10 @@ export default function PacksManagement() {
           <FormInput label="Nom" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <FormInput label="Prix" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
           <FormInput label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <Button type="submit" className="self-end">Ajouter un pack</Button>
+          <div className="flex items-end gap-2">
+            <Button type="submit">Ajouter un pack</Button>
+            <Button type="button" variant="outline" onClick={resetForm}>Annuler</Button>
+          </div>
         </form>
       </Card>
       <div className="mt-6">

@@ -29,6 +29,9 @@ export default function RecordingsManagement() {
     setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', youtube_video_url: '', youtube_playlist_url: '', session_date: '', embed_enabled: true, is_visible: true });
     load();
   };
+  const resetForm = () => {
+    setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', youtube_video_url: '', youtube_playlist_url: '', session_date: '', embed_enabled: true, is_visible: true });
+  };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -70,7 +73,10 @@ export default function RecordingsManagement() {
           <select value={form.pack_id} onChange={(e) => setForm({ ...form, pack_id: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
             {data.packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
           </select>
-          <Button type="submit">Ajouter l’enregistrement</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">Ajouter l’enregistrement</Button>
+            <Button type="button" variant="outline" onClick={resetForm}>Annuler</Button>
+          </div>
         </form>
       </Card>
       <div className="mt-6">

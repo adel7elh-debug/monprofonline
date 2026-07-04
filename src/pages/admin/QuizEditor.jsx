@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import AlertMessage from '../../components/AlertMessage';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
@@ -94,8 +94,13 @@ export default function QuizEditor() {
 
   return (
     <div>
-      <h1 className="text-3xl font-black text-navy">Éditeur de QCM</h1>
-      <p className="mt-1 text-slate-600">{data.quiz?.title}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-black text-navy">Éditeur de QCM</h1>
+          <p className="mt-1 text-slate-600">{data.quiz?.title}</p>
+        </div>
+        <Link to="/admin/quizzes"><Button variant="outline">Retour à la liste</Button></Link>
+      </div>
 
       {message ? (
         <div className="mt-4">

@@ -31,6 +31,14 @@ export default function QuizzesManagement() {
     setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', duration_minutes: 30, is_published: false });
     load();
   };
+  const closeImportModal = () => {
+    if (importing) return;
+    setImportModal(false);
+    setImportRows([]);
+  };
+  const resetForm = () => {
+    setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', duration_minutes: 30, is_published: false });
+  };
   const parseImport = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -93,7 +101,10 @@ export default function QuizzesManagement() {
           <select value={form.pack_id} onChange={(e) => setForm({ ...form, pack_id: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
             {data.packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
           </select>
-          <Button type="submit">Créer le QCM</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">Créer le QCM</Button>
+            <Button type="button" variant="outline" onClick={resetForm}>Annuler</Button>
+          </div>
         </form>
       </Card>
       <div className="mt-6">
@@ -118,7 +129,7 @@ export default function QuizzesManagement() {
           ]}
         />
       </div>
-      <Modal open={importModal} title="Importer des questions" onClose={() => setImportModal(false)}>
+      <Modal open={importModal} title="Importer des questions" onClose={closeImportModal}>
         <div className="grid gap-4">
           <AlertMessage type="info">
             Colonnes attendues : quiz_title, subject, question, answer_a, answer_b, answer_c, answer_d, correct_answer, explanation.
@@ -164,12 +175,17 @@ export default function QuizzesManagement() {
                 </table>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
-                <Button variant="outline" onClick={() => setImportModal(false)} disabled={importing}>Annuler</Button>
+                <Button variant="outline" onClick={closeImportModal} disabled={importing}>Annuler</Button>
                 <Button onClick={confirmImport} loading={importing} disabled={Boolean(importErrors.length)}>
                   Confirmer l’import
                 </Button>
               </div>
             </>
+          ) : null}
+          {!importRows.length ? (
+            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
+              <Button variant="outline" onClick={closeImportModal} disabled={importing}>Annuler</Button>
+            </div>
           ) : null}
         </div>
       </Modal>

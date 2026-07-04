@@ -6,8 +6,20 @@ import Card from '../../components/Card';
 export default function QuizResult() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  if (!state) return <AlertMessage type="warning">Aucun résultat à afficher.</AlertMessage>;
+
+  if (!state) {
+    return (
+      <div className="grid gap-4">
+        <AlertMessage type="warning">Aucun résultat à afficher.</AlertMessage>
+        <div>
+          <Button variant="outline" onClick={() => navigate('/student/quizzes')}>Retour aux QCM</Button>
+        </div>
+      </div>
+    );
+  }
+
   const { questions, selected, attempt } = state;
+
   return (
     <div className="mx-auto max-w-4xl">
       <Card className="p-6">
@@ -28,14 +40,14 @@ export default function QuizResult() {
             <Card key={question.id} className="p-5">
               <h2 className="font-black text-navy">{question.question_text}</h2>
               <p className={`mt-2 text-sm font-bold ${ok ? 'text-emerald-700' : 'text-red-700'}`}>{ok ? 'Bonne réponse' : 'Mauvaise réponse'}</p>
-              <p className="mt-2 text-sm text-slate-600">Correction : {question.answers.filter((a) => a.is_correct).map((a) => a.answer_text).join(', ')}</p>
+              <p className="mt-2 text-sm text-slate-600">Correction : {question.answers.filter((answer) => answer.is_correct).map((answer) => answer.answer_text).join(', ')}</p>
               <p className="mt-2 text-sm text-slate-600">{question.explanation}</p>
             </Card>
           );
         })}
       </div>
-      <div className="mt-6 flex gap-2">
-        <Link to="/student/history"><Button>Historique</Button></Link>
+      <div className="mt-6 flex flex-wrap gap-2">
+        <Link to="/student/history"><Button>Voir l’historique</Button></Link>
         <Button variant="outline" onClick={() => navigate('/student/quizzes')}>Retour aux QCM</Button>
       </div>
     </div>

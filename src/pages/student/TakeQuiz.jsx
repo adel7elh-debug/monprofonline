@@ -22,6 +22,15 @@ export default function TakeQuiz() {
 
   const question = data?.questions[current];
   const selectedIds = useMemo(() => selected[question?.id] || [], [selected, question?.id]);
+  const hasStarted = Object.values(selected).some((items) => items?.length);
+
+  const leaveQuiz = () => {
+    if (hasStarted) {
+      const confirmed = window.confirm('Voulez-vous quitter ce QCM ? Vos réponses non validées seront perdues.');
+      if (!confirmed) return;
+    }
+    navigate('/student/quizzes');
+  };
 
   const toggle = (answerId) => {
     setSelected((state) => {
@@ -62,6 +71,7 @@ export default function TakeQuiz() {
 
   return (
     <div className="mx-auto max-w-3xl">
+      <Button variant="outline" onClick={leaveQuiz}>Retour aux QCM</Button>
       <p className="text-sm font-bold uppercase tracking-wide text-gold">Question {current + 1} / {data.questions.length}</p>
       <h1 className="mt-2 text-2xl font-black text-navy">{data.quiz?.title}</h1>
       <Card className="mt-5 p-6">

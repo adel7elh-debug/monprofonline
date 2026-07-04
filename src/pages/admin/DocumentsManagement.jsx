@@ -31,6 +31,10 @@ export default function DocumentsManagement() {
     setFile(null);
     load();
   };
+  const resetForm = () => {
+    setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', document_type: 'support', is_visible: true });
+    setFile(null);
+  };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -90,7 +94,10 @@ export default function DocumentsManagement() {
               ].map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
-          <Button type="submit" className="md:col-span-3">Ajouter le document</Button>
+          <div className="flex flex-wrap gap-2 md:col-span-3">
+            <Button type="submit">Ajouter le document</Button>
+            <Button type="button" variant="outline" onClick={resetForm}>Annuler</Button>
+          </div>
         </form>
       </Card>
       <div className="mt-6">

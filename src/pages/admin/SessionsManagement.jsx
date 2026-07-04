@@ -272,9 +272,12 @@ export default function SessionsManagement() {
               <option value="false">Non</option>
             </select>
           </label>
-          <Button type="submit" loading={saving} className="md:col-span-3">
-            {editingId ? 'Modifier la séance' : 'Ajouter la séance'}
-          </Button>
+          <div className="flex flex-wrap gap-2 md:col-span-3">
+            <Button type="submit" loading={saving}>
+              {editingId ? 'Modifier la séance' : 'Ajouter la séance'}
+            </Button>
+            <Button type="button" variant="outline" onClick={resetForm} disabled={saving}>Annuler</Button>
+          </div>
         </form>
       </Card>
 

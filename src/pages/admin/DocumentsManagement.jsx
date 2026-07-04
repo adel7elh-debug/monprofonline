@@ -1,15 +1,22 @@
 import { useEffect, useState } from 'react';
+import AlertMessage from '../../components/AlertMessage';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import FormInput from '../../components/FormInput';
+import Modal from '../../components/Modal';
 import Table from '../../components/Table';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { createRow, listAdminDocuments, listPacks, listSubjects, uploadDocumentPdf } from '../../lib/dataService';
+import { useAuth } from '../../context/AuthContext';
+import { createRow, deleteDocument, listAdminDocuments, listPacks, listSubjects, uploadDocumentPdf } from '../../lib/dataService';
 
 export default function DocumentsManagement() {
+  const { profile } = useAuth();
   const [data, setData] = useState(null);
   const [file, setFile] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', subject_id: '', pack_id: '', document_type: 'support', is_visible: true });
   const load = () => Promise.all([listAdminDocuments(), listSubjects(), listPacks()]).then(([documents, subjects, packs]) => {
     setData({ documents, subjects, packs });
@@ -24,9 +31,33 @@ export default function DocumentsManagement() {
     setFile(null);
     load();
   };
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setMessage(null);
+    try {
+      const response = await deleteDocument(deleteTarget.id);
+      setData((current) => ({
+        ...current,
+        documents: (current?.documents || []).filter((item) => item.id !== deleteTarget.id),
+      }));
+      setDeleteTarget(null);
+      setMessage({ type: 'success', text: response?.message || 'Document supprimé avec succès.' });
+      load();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Impossible de supprimer ce document.' });
+    } finally {
+      setDeleting(false);
+    }
+  };
   if (!data) return <LoadingSpinner />;
   return (
     <div>
+      {message ? (
+        <div className="mb-4">
+          <AlertMessage type={message.type}>{message.text}</AlertMessage>
+        </div>
+      ) : null}
       <h1 className="text-3xl font-black text-navy">Gestion des documents PDF</h1>
       <Card className="mt-5 p-5">
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-3">
@@ -71,9 +102,44 @@ export default function DocumentsManagement() {
             { key: 'subject', label: 'Matière', render: (row) => row.subjects?.name || '-' },
             { key: 'is_visible', label: 'Visible', render: (row) => <Badge tone={row.is_visible ? 'active' : 'inactive'}>{row.is_visible ? 'Oui' : 'Non'}</Badge> },
             { key: 'file_path', label: 'Chemin du fichier' },
+            {
+              key: 'actions',
+              label: 'Actions',
+              render: (row) => (profile?.role === 'admin' ? (
+                <Button
+                  variant="danger"
+                  className="border border-red-200"
+                  onClick={() => {
+                    setMessage(null);
+                    setDeleteTarget(row);
+                  }}
+                >
+                  Supprimer
+                </Button>
+              ) : null),
+            },
           ]}
         />
       </div>
+      <Modal open={Boolean(deleteTarget)} title="Supprimer ce document PDF ?" onClose={() => setDeleteTarget(null)}>
+        <div className="grid gap-4">
+          <p className="text-sm text-slate-700">
+            Cette action supprimera le document de la plateforme. Cette action est irréversible.
+          </p>
+          <div className="rounded-md border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-900">
+            <p className="font-semibold">{deleteTarget?.title || 'Document sélectionné'}</p>
+            {deleteTarget?.file_path ? <p>{deleteTarget.file_path}</p> : null}
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Annuler
+            </Button>
+            <Button variant="danger" onClick={confirmDelete} loading={deleting}>
+              Confirmer la suppression
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

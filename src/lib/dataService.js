@@ -389,6 +389,77 @@ export const deleteStudent = async (studentId) => {
   return data;
 };
 
+const extractFunctionError = async (error, data) => {
+  if (data?.error) return data.error;
+  if (!error?.context) return null;
+  try {
+    const response = await error.context.json();
+    return response?.error || null;
+  } catch {
+    return null;
+  }
+};
+
+export const deleteDocument = async (documentId) => {
+  if (!documentId) throw new Error('document_id requis.');
+  if (!isSupabaseConfigured) {
+    return {
+      success: true,
+      message: 'Document supprimé avec succès.',
+    };
+  }
+
+  const { data, error } = await supabase.functions.invoke('delete-document', {
+    body: { document_id: documentId },
+  });
+
+  if (error || data?.error || data?.success === false) {
+    const functionError = await extractFunctionError(error, data);
+    console.error('Delete document function failed:', {
+      documentId,
+      error,
+      data,
+      message: functionError || error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+    });
+    throw new Error(functionError || error?.message || 'Impossible de supprimer ce document.');
+  }
+
+  return data;
+};
+
+export const deleteRecording = async (recordingId) => {
+  if (!recordingId) throw new Error('recording_id requis.');
+  if (!isSupabaseConfigured) {
+    return {
+      success: true,
+      message: 'Enregistrement supprimé avec succès.',
+    };
+  }
+
+  const { data, error } = await supabase.functions.invoke('delete-recording', {
+    body: { recording_id: recordingId },
+  });
+
+  if (error || data?.error || data?.success === false) {
+    const functionError = await extractFunctionError(error, data);
+    console.error('Delete recording function failed:', {
+      recordingId,
+      error,
+      data,
+      message: functionError || error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code,
+    });
+    throw new Error(functionError || error?.message || 'Impossible de supprimer cet enregistrement.');
+  }
+
+  return data;
+};
+
 export const getDocumentSignedUrl = async (documentId) => {
   const data = await invokeFunction('generate-document-signed-url', { document_id: documentId });
   return data?.signedUrl || data?.signed_url || '#';

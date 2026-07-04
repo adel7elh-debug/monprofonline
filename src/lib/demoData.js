@@ -7,6 +7,17 @@ export const demoPack = {
   is_active: true,
 };
 
+const demoSubjectMeta = [
+  ['Économie', 'Débutant'],
+  ['Management', 'Débutant'],
+  ['Finance', 'Intermédiaire'],
+  ['Marketing', 'Débutant'],
+  ['Comptabilité', 'Débutant'],
+  ['Méthodologie', 'Débutant'],
+  ['Économie', 'Intermédiaire'],
+  ['Oral', 'Intermédiaire'],
+];
+
 export const subjects = [
   'Économie générale',
   'Management',
@@ -20,6 +31,9 @@ export const subjects = [
   id: `subject-${index + 1}`,
   name,
   description: `Module ${name} pour les concours de Master.`,
+  category: demoSubjectMeta[index]?.[0] || 'Méthodologie',
+  level: demoSubjectMeta[index]?.[1] || 'Intermédiaire',
+  is_visible: true,
   display_order: index + 1,
 }));
 

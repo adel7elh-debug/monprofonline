@@ -3,7 +3,7 @@ import { Link, useOutletContext } from 'react-router-dom';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { listStudentDocuments, listStudentQuizzes, listStudentRecordings, listStudentSubjects } from '../../lib/dataService';
+import { getStudentSubjectsOverview } from '../../lib/dataService';
 
 export default function StudentSubjects() {
   const outletContext = useOutletContext() || {};
@@ -11,19 +11,12 @@ export default function StudentSubjects() {
   const [data, setData] = useState(null);
   useEffect(() => {
     if (!activePack?.pack_id) {
-      setData({ subjects: [], documents: [], quizzes: [], recordings: [] });
+      setData({ subjects: [], documentCounts: {}, quizCounts: {}, recordingCounts: {} });
       return;
     }
-    Promise.all([
-      listStudentSubjects(activePack.pack_id),
-      listStudentDocuments(activePack.pack_id),
-      listStudentQuizzes(activePack.pack_id),
-      listStudentRecordings(activePack.pack_id),
-    ]).then(
-      ([subjects, documents, quizzes, recordings]) => setData({ subjects, documents, quizzes, recordings }),
-    ).catch((error) => {
+    getStudentSubjectsOverview(activePack.pack_id).then(setData).catch((error) => {
       console.error('Student subjects load failed:', error);
-      setData({ subjects: [], documents: [], quizzes: [], recordings: [] });
+      setData({ subjects: [], documentCounts: {}, quizCounts: {}, recordingCounts: {} });
     });
   }, [activePack?.pack_id]);
   if (!data) return <LoadingSpinner label="Chargement..." />;
@@ -35,9 +28,9 @@ export default function StudentSubjects() {
           <Card key={subject.id} className="p-5">
             <h2 className="font-black text-navy">{subject.name}</h2>
             <div className="mt-4 grid gap-2 text-sm text-slate-600">
-              <p>{data.documents.filter((item) => item.subject_id === subject.id).length} documents</p>
-              <p>{data.quizzes.filter((item) => item.subject_id === subject.id).length} QCM</p>
-              <p>{data.recordings.filter((item) => item.subject_id === subject.id).length} enregistrements</p>
+              <p>{data.documentCounts[subject.id] || 0} documents</p>
+              <p>{data.quizCounts[subject.id] || 0} QCM</p>
+              <p>{data.recordingCounts[subject.id] || 0} enregistrements</p>
             </div>
             <Link to={`/student/documents?subject=${subject.id}`}><Button variant="outline" className="mt-4 w-full">Consulter</Button></Link>
           </Card>

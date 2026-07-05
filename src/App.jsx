@@ -82,6 +82,7 @@ export default function App() {
               <Route path="quizzes/:quizId" element={studentPage(<TakeQuiz />)} />
               <Route path="quizzes/:quizId/result" element={studentPage(<QuizResult />)} />
               <Route path="history" element={studentPage(<QuizHistory />)} />
+              <Route path="quiz-history" element={studentPage(<QuizHistory />)} />
               <Route path="recordings" element={studentPage(<StudentRecordings />)} />
               <Route path="agenda" element={studentPage(<StudentAgenda />)} />
               <Route path="profile" element={studentPage(<StudentProfile />)} />

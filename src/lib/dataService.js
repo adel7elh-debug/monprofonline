@@ -120,7 +120,7 @@ export const getStudentSessions = async (activePackId, options = {}) => {
   }
   let query = supabase
     .from('sessions')
-    .select('*, subjects(name), packs(name)')
+    .select('id, title, description, subject_id, session_date, start_time, end_time, meet_link, replay_link, status, subjects(name)')
     .eq('is_visible', true)
     .eq('pack_id', activePackId)
     .order('session_date')
@@ -178,7 +178,7 @@ export const listStudentSubjects = async (activePackId) => {
     if (!isSupabaseConfigured) return fallback('subjects');
     const { data, error } = await supabase
       .from('subjects')
-      .select('*')
+      .select('id, name, description, display_order')
       .order('display_order');
     if (error) {
       console.error('Supabase student subjects select failed:', {
@@ -192,6 +192,63 @@ export const listStudentSubjects = async (activePackId) => {
       throw error;
     }
     return data || [];
+  });
+};
+
+const countBySubject = (items = []) =>
+  items.reduce((counts, item) => {
+    if (!item.subject_id) return counts;
+    counts[item.subject_id] = (counts[item.subject_id] || 0) + 1;
+    return counts;
+  }, {});
+
+export const getStudentSubjectsOverview = async (activePackId) => {
+  if (!activePackId) return { subjects: [], documentCounts: {}, quizCounts: {}, recordingCounts: {} };
+  const key = cacheKey('student:subjects-overview', activePackId);
+  return cached(key, async () => {
+    if (!isSupabaseConfigured) {
+      const demoData = await getDemoData();
+      return {
+        subjects: demoData.subjects,
+        documentCounts: countBySubject(demoData.documents.filter((item) => item.is_visible && item.pack_id === activePackId)),
+        quizCounts: countBySubject(demoData.quizzes.filter((item) => item.is_published && item.pack_id === activePackId)),
+        recordingCounts: countBySubject(demoData.recordings.filter((item) => item.is_visible && item.pack_id === activePackId)),
+      };
+    }
+
+    const [subjectsResult, documentsResult, quizzesResult, recordingsResult] = await Promise.all([
+      supabase.from('subjects').select('id, name, description, display_order').order('display_order'),
+      supabase.from('documents').select('subject_id').eq('is_visible', true).eq('pack_id', activePackId),
+      supabase.from('quizzes').select('subject_id').eq('is_published', true).eq('pack_id', activePackId),
+      supabase.from('recordings').select('subject_id').eq('is_visible', true).eq('pack_id', activePackId),
+    ]);
+
+    const failed = [
+      ['subjects', subjectsResult],
+      ['documents', documentsResult],
+      ['quizzes', quizzesResult],
+      ['recordings', recordingsResult],
+    ].find(([, result]) => result.error);
+
+    if (failed) {
+      const [label, result] = failed;
+      console.error(`Supabase student subjects overview ${label} select failed:`, {
+        activePackId,
+        error: result.error,
+        message: result.error.message,
+        details: result.error.details,
+        hint: result.error.hint,
+        code: result.error.code,
+      });
+      throw result.error;
+    }
+
+    return {
+      subjects: subjectsResult.data || [],
+      documentCounts: countBySubject(documentsResult.data),
+      quizCounts: countBySubject(quizzesResult.data),
+      recordingCounts: countBySubject(recordingsResult.data),
+    };
   });
 };
 
@@ -396,52 +453,97 @@ export const getStudentPack = async (studentId) => {
   if (!studentId) return null;
   const key = cacheKey('student:pack', studentId);
   return cached(key, async () => {
-  if (!isSupabaseConfigured) {
-    const demoData = await getDemoData();
-    return demoData.studentPacks.find((item) => item.student_id === studentId) || demoData.studentPacks[0];
-  }
-  const today = new Date().toISOString().slice(0, 10);
-  const { data, error } = await supabase
-    .from('student_packs')
-    .select('id, student_id, pack_id, status, start_date, end_date, created_at, packs(name)')
-    .eq('student_id', studentId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false });
+    if (!isSupabaseConfigured) {
+      const demoData = await getDemoData();
+      return demoData.studentPacks.find((item) => item.student_id === studentId) || demoData.studentPacks[0];
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from('student_packs')
+      .select('id, student_id, pack_id, status, start_date, end_date, created_at, packs(name)')
+      .eq('student_id', studentId)
+      .eq('status', 'active')
+      .or(`end_date.is.null,end_date.gte.${today}`)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-  if (error) {
-    console.error('Supabase student_packs access check failed:', {
-      studentId,
-      error,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
-    });
-    throw error;
-  }
+    if (error) {
+      console.error('Supabase student_packs access check failed:', {
+        studentId,
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      throw error;
+    }
 
-  const activePack = (data || []).find((item) => !item.end_date || item.end_date >= today) || null;
-  return activePack;
+    const activePack = data?.[0] || null;
+    return activePack;
   });
 };
 
-export const getQuizWithQuestions = async (quizId) => {
+export const getQuizWithQuestions = async (quizId, activePackId) => {
   if (!isSupabaseConfigured) {
     const demoData = await getDemoData();
-    const quiz = demoData.quizzes.find((item) => item.id === quizId);
+    const quiz = demoData.quizzes.find((item) => item.id === quizId && (!activePackId || item.pack_id === activePackId));
     const questions = demoData.questions.filter((item) => item.quiz_id === quizId);
     return { quiz, questions };
   }
-  const [{ data: quiz }, { data: questions, error }] = await Promise.all([
-    supabase.from('quizzes').select('*, subjects(name)').eq('id', quizId).single(),
+  let quizQuery = supabase
+    .from('quizzes')
+    .select('id, title, description, subject_id, duration_minutes, created_at, subjects(name)')
+    .eq('id', quizId);
+  if (activePackId) quizQuery = quizQuery.eq('is_published', true).eq('pack_id', activePackId);
+
+  const [{ data: quiz, error: quizError }, { data: questions, error: questionsError }] = await Promise.all([
+    quizQuery.single(),
     supabase
       .from('questions')
-      .select('*, answers(*)')
+      .select('id, quiz_id, question_text, explanation, display_order, answers(id, question_id, answer_text, is_correct)')
       .eq('quiz_id', quizId)
       .order('display_order'),
   ]);
-  if (error) throw error;
+  if (quizError) throw quizError;
+  if (questionsError) throw questionsError;
   return { quiz, questions: questions || [] };
+};
+
+export const getQuizAttemptCorrection = async ({ attemptId, studentId, activePackId }) => {
+  if (!attemptId || !studentId) return null;
+  if (!isSupabaseConfigured) {
+    const demoData = await getDemoData();
+    const attempt = demoData.attempts.find((item) => item.id === attemptId && (item.student_id === studentId || studentId === 'student-demo'));
+    if (!attempt) return null;
+    const { quiz, questions } = await getQuizWithQuestions(attempt.quiz_id, activePackId);
+    return { quiz, questions, selected: attempt.answers || {}, attempt };
+  }
+
+  const { data: attempt, error: attemptError } = await supabase
+    .from('quiz_attempts')
+    .select('id, quiz_id, student_id, score, total_questions, percentage, created_at, quizzes(title)')
+    .eq('id', attemptId)
+    .eq('student_id', studentId)
+    .single();
+  if (attemptError) throw attemptError;
+
+  const [{ questions, quiz }, { data: attemptAnswers, error: answersError }] = await Promise.all([
+    getQuizWithQuestions(attempt.quiz_id, activePackId),
+    supabase
+      .from('quiz_attempt_answers')
+      .select('question_id, selected_answer_id')
+      .eq('attempt_id', attemptId),
+  ]);
+  if (answersError) throw answersError;
+
+  const selected = (attemptAnswers || []).reduce((answers, row) => {
+    if (!row.question_id || !row.selected_answer_id) return answers;
+    answers[row.question_id] = [...(answers[row.question_id] || []), row.selected_answer_id];
+    return answers;
+  }, {});
+
+  return { quiz, questions, selected, attempt };
 };
 
 export const submitRegistrationRequest = async (payload) => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import AlertMessage from '../../components/AlertMessage';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
@@ -10,6 +10,8 @@ import { getQuizWithQuestions, saveQuizAttempt } from '../../lib/dataService';
 export default function TakeQuiz() {
   const { quizId } = useParams();
   const { profile } = useAuth();
+  const outletContext = useOutletContext() || {};
+  const { activePack } = outletContext;
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [current, setCurrent] = useState(0);
@@ -17,8 +19,9 @@ export default function TakeQuiz() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    getQuizWithQuestions(quizId).then(setData).catch((err) => setError(err.message));
-  }, [quizId]);
+    if (!activePack?.pack_id) return;
+    getQuizWithQuestions(quizId, activePack.pack_id).then(setData).catch((err) => setError(err.message));
+  }, [activePack?.pack_id, quizId]);
 
   const question = data?.questions[current];
   const selectedIds = useMemo(() => selected[question?.id] || [], [selected, question?.id]);

@@ -22,6 +22,7 @@ export default function StudentDocuments() {
   const [subject, setSubject] = useState(searchParams.get('subject') || '');
   const [type, setType] = useState('');
   const [data, setData] = useState(null);
+  const [openingAction, setOpeningAction] = useState(null);
 
   useEffect(() => {
     if (!activePack?.pack_id) {
@@ -41,9 +42,17 @@ export default function StudentDocuments() {
     return data.documents.filter((doc) => (!subject || doc.subject_id === subject) && (!type || doc.document_type === type));
   }, [data, subject, type]);
 
-  const openDocument = async (id) => {
-    const url = await getDocumentSignedUrl(id);
-    if (url && url !== '#') window.open(url, '_blank', 'noopener,noreferrer');
+  const openDocument = async (id, action) => {
+    const actionKey = `${id}:${action}`;
+    setOpeningAction(actionKey);
+    try {
+      const url = await getDocumentSignedUrl(id);
+      if (url && url !== '#') window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Student document signed URL load failed:', error);
+    } finally {
+      setOpeningAction(null);
+    }
   };
 
   if (!data) return <LoadingSpinner label="Chargement des documents..." />;
@@ -68,8 +77,22 @@ export default function StudentDocuments() {
             <p className="mt-2 text-sm leading-6 text-slate-600">{doc.description}</p>
             <p className="mt-3 text-xs font-semibold text-slate-500">{doc.subjects?.name || doc.subjects?.[0]?.name}</p>
             <div className="mt-4 flex gap-2">
-              <Button variant="secondary" onClick={() => openDocument(doc.id)}><Eye className="h-4 w-4" />Consulter</Button>
-              <Button variant="outline" onClick={() => openDocument(doc.id)}><Download className="h-4 w-4" />Télécharger</Button>
+              <Button
+                variant="secondary"
+                loading={openingAction === `${doc.id}:open`}
+                disabled={Boolean(openingAction)}
+                onClick={() => openDocument(doc.id, 'open')}
+              >
+                <Eye className="h-4 w-4" />Consulter
+              </Button>
+              <Button
+                variant="outline"
+                loading={openingAction === `${doc.id}:download`}
+                disabled={Boolean(openingAction)}
+                onClick={() => openDocument(doc.id, 'download')}
+              >
+                <Download className="h-4 w-4" />Télécharger
+              </Button>
             </div>
           </Card>
         ))}

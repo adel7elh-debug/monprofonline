@@ -1,13 +1,53 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import AlertMessage from '../../components/AlertMessage';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import { useAuth } from '../../context/AuthContext';
+import { getQuizAttemptCorrection } from '../../lib/dataService';
 
 export default function QuizResult() {
   const { state } = useLocation();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const outletContext = useOutletContext() || {};
+  const { activePack } = outletContext;
+  const attemptId = searchParams.get('attempt');
+  const [loadedCorrection, setLoadedCorrection] = useState(null);
+  const [error, setError] = useState(null);
 
-  if (!state) {
+  useEffect(() => {
+    if (state || !attemptId || !profile?.id || !activePack?.pack_id) return;
+    setLoadedCorrection(null);
+    setError(null);
+    getQuizAttemptCorrection({ attemptId, studentId: profile.id, activePackId: activePack.pack_id })
+      .then(setLoadedCorrection)
+      .catch((err) => {
+        console.error('Student quiz correction load failed:', err);
+        setError('Impossible de charger cette correction.');
+      });
+  }, [activePack?.pack_id, attemptId, profile?.id, state]);
+
+  const result = state || loadedCorrection;
+
+  if (!state && attemptId && !error && !loadedCorrection) {
+    return <LoadingSpinner label="Chargement de la correction..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="grid gap-4">
+        <AlertMessage type="error">{error}</AlertMessage>
+        <div>
+          <Button variant="outline" onClick={() => navigate('/student/history')}>Retour à l'historique</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!result) {
     return (
       <div className="grid gap-4">
         <AlertMessage type="warning">Aucun résultat à afficher.</AlertMessage>
@@ -18,7 +58,7 @@ export default function QuizResult() {
     );
   }
 
-  const { questions, selected, attempt } = state;
+  const { questions, selected, attempt } = result;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -35,7 +75,7 @@ export default function QuizResult() {
         {questions.map((question) => {
           const picked = selected[question.id] || [];
           const correct = question.answers.filter((answer) => answer.is_correct).map((answer) => answer.id);
-          const ok = picked.sort().join(',') === correct.sort().join(',');
+          const ok = [...picked].sort().join(',') === [...correct].sort().join(',');
           return (
             <Card key={question.id} className="p-5">
               <h2 className="font-black text-navy">{question.question_text}</h2>
@@ -47,7 +87,7 @@ export default function QuizResult() {
         })}
       </div>
       <div className="mt-6 flex flex-wrap gap-2">
-        <Link to="/student/history"><Button>Voir l’historique</Button></Link>
+        <Link to="/student/history"><Button>Voir l'historique</Button></Link>
         <Button variant="outline" onClick={() => navigate('/student/quizzes')}>Retour aux QCM</Button>
       </div>
     </div>

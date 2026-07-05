@@ -69,8 +69,8 @@ export default function StudentAgenda() {
       return;
     }
 
-    const range = view === 'all' ? {} : getWeekRange(view === 'next' ? 1 : 0);
-    Promise.all([getStudentSessions(activePack.pack_id, { from: range.start, to: range.end, limit: view === 'all' ? undefined : 50 }), listStudentSubjects(activePack.pack_id)])
+    const range = view === 'all' ? { start: toDateInput(new Date()) } : getWeekRange(view === 'next' ? 1 : 0);
+    Promise.all([getStudentSessions(activePack.pack_id, { from: range.start, to: range.end, limit: view === 'all' ? 100 : 50 }), listStudentSubjects(activePack.pack_id)])
       .then(([sessions, subjects]) => setData({ sessions, subjects }))
       .catch((err) => {
         console.error('Student agenda load error:', err);

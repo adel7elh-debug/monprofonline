@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AlertMessage from '../../components/AlertMessage';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
@@ -10,30 +10,134 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import { useAuth } from '../../context/AuthContext';
 import { createRow, deleteDocument, listAdminDocuments, listPacks, listSubjects, uploadDocumentPdf } from '../../lib/dataService';
 
+const draftKey = 'monprof-admin-document-draft';
+const maxPdfSize = 20 * 1024 * 1024;
+
+const emptyForm = {
+  title: '',
+  description: '',
+  subject_id: '',
+  pack_id: '',
+  document_type: 'support',
+  is_visible: true,
+};
+
+const getDraft = () => {
+  try {
+    return JSON.parse(localStorage.getItem(draftKey) || '{}');
+  } catch {
+    return {};
+  }
+};
+
 export default function DocumentsManagement() {
   const { profile } = useAuth();
   const [data, setData] = useState(null);
   const [file, setFile] = useState(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const skipDraftSave = useRef(false);
   const [message, setMessage] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', subject_id: '', pack_id: '', document_type: 'support', is_visible: true });
+  const [form, setForm] = useState(() => ({ ...emptyForm, ...getDraft() }));
   const load = () => Promise.all([listAdminDocuments(), listSubjects(), listPacks()]).then(([documents, subjects, packs]) => {
     setData({ documents, subjects, packs });
     setForm((current) => ({ ...current, subject_id: current.subject_id || subjects[0]?.id || '', pack_id: current.pack_id || packs[0]?.id || '' }));
   });
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (skipDraftSave.current) {
+      localStorage.removeItem(draftKey);
+      skipDraftSave.current = false;
+      return;
+    }
+    localStorage.setItem(draftKey, JSON.stringify({
+      title: form.title,
+      description: form.description,
+      subject_id: form.subject_id,
+      pack_id: form.pack_id,
+      document_type: form.document_type,
+      is_visible: form.is_visible,
+    }));
+  }, [form]);
+
+  const resetForm = () => {
+    setForm({
+      ...emptyForm,
+      subject_id: data?.subjects[0]?.id || '',
+      pack_id: data?.packs[0]?.id || '',
+    });
+    setFile(null);
+    setFileInputKey((value) => value + 1);
+    skipDraftSave.current = true;
+    localStorage.removeItem(draftKey);
+  };
+
+  const validateFile = (nextFile) => {
+    if (!nextFile) {
+      setFile(null);
+      return;
+    }
+    const isPdf = nextFile.type === 'application/pdf' || nextFile.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      setFile(null);
+      setFileInputKey((value) => value + 1);
+      setMessage({ type: 'error', text: 'Veuillez sélectionner un fichier PDF.' });
+      return;
+    }
+    if (nextFile.size > maxPdfSize) {
+      setFile(null);
+      setFileInputKey((value) => value + 1);
+      setMessage({ type: 'error', text: 'Le fichier PDF est trop lourd. Taille maximale : 20 Mo.' });
+      return;
+    }
+    setMessage(null);
+    setFile(nextFile);
+  };
+
   const submit = async (event) => {
     event.preventDefault();
-    const file_path = await uploadDocumentPdf(file);
-    await createRow('documents', { ...form, file_path });
-    setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', document_type: 'support', is_visible: true });
-    setFile(null);
-    load();
-  };
-  const resetForm = () => {
-    setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', document_type: 'support', is_visible: true });
-    setFile(null);
+    setMessage(null);
+    if (!form.title.trim() || !form.subject_id || !form.pack_id || !form.document_type || !file) {
+      setMessage({ type: 'error', text: 'Veuillez remplir tous les champs obligatoires.' });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const file_path = await uploadDocumentPdf(file);
+      const created = await createRow('documents', {
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        subject_id: form.subject_id,
+        pack_id: form.pack_id,
+        document_type: form.document_type,
+        file_path,
+        is_visible: true,
+      });
+      setData((current) => ({
+        ...current,
+        documents: [created, ...(current?.documents || [])],
+      }));
+      resetForm();
+      setMessage({ type: 'success', text: 'Document ajouté avec succès.' });
+      await load();
+    } catch (error) {
+      console.error('Supabase document add error:', {
+        form,
+        file: file ? { name: file.name, size: file.size, type: file.type } : null,
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      setMessage({ type: 'error', text: error.message || 'Impossible d’ajouter le document.' });
+    } finally {
+      setSaving(false);
+    }
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -69,7 +173,14 @@ export default function DocumentsManagement() {
           <FormInput label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate-700">PDF</span>
-            <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0])} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+            <input
+              key={fileInputKey}
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={(e) => validateFile(e.target.files?.[0])}
+              className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+            />
+            {file ? <span className="mt-1 block text-xs font-semibold text-slate-500">{file.name}</span> : null}
           </label>
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate-700">Matière</span>
@@ -95,8 +206,8 @@ export default function DocumentsManagement() {
             </select>
           </label>
           <div className="flex flex-wrap gap-2 md:col-span-3">
-            <Button type="submit">Ajouter le document</Button>
-            <Button type="button" variant="outline" onClick={resetForm}>Annuler</Button>
+            <Button type="submit" loading={saving}>{saving ? 'Ajout en cours...' : 'Ajouter le document'}</Button>
+            <Button type="button" variant="outline" onClick={resetForm} disabled={saving}>Annuler</Button>
           </div>
         </form>
       </Card>

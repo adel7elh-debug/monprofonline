@@ -42,7 +42,7 @@ export default function StudentQuizzes() {
           </Card>
         ))}
       </div>
-      {!quizzes.length ? <div className="mt-6"><EmptyState title="Aucun QCM disponible" /></div> : null}
+      {!quizzes.length ? <div className="mt-6"><EmptyState title="Aucun QCM disponible pour le moment." /></div> : null}
     </div>
   );
 }

@@ -192,7 +192,7 @@ export const listStudentSubjects = async (activePackId) => {
       throw error;
     }
     return data || [];
-  });
+  }, 10 * 1000);
 };
 
 const countBySubject = (items = []) =>
@@ -278,21 +278,93 @@ export const listStudentDocuments = async (activePackId) => {
       throw error;
     }
     return data || [];
-  });
+  }, 10 * 1000);
+};
+
+const diagnoseStudentQuizVisibility = async (activePackId) => {
+  try {
+    const { data: publishedQuizzes, error: quizzesError } = await supabase
+      .from('quizzes')
+      .select('id, title, pack_id, subject_id, is_published')
+      .eq('is_published', true);
+
+    if (quizzesError) {
+      console.error('Problème RLS Supabase lors de la lecture des QCM publiés:', {
+        activePackId,
+        error: quizzesError,
+        message: quizzesError.message,
+        details: quizzesError.details,
+        hint: quizzesError.hint,
+        code: quizzesError.code,
+      });
+      return;
+    }
+
+    if (!publishedQuizzes?.length) {
+      console.warn('Aucun QCM publié visible pour cet étudiant. Causes possibles : aucun QCM publié ou RLS Supabase trop restrictive.');
+      return;
+    }
+
+    const packQuizzes = publishedQuizzes.filter((quiz) => quiz.pack_id === activePackId);
+    if (!packQuizzes.length) {
+      console.warn('Aucun QCM publié lié au pack actif de l’étudiant.', {
+        activePackId,
+        visiblePublishedQuizzes: publishedQuizzes.map((quiz) => ({ id: quiz.id, title: quiz.title, pack_id: quiz.pack_id })),
+      });
+      return;
+    }
+
+    const { data: questions, error: questionsError } = await supabase
+      .from('questions')
+      .select('id, quiz_id')
+      .in('quiz_id', packQuizzes.map((quiz) => quiz.id));
+
+    if (questionsError) {
+      console.error('Problème RLS Supabase lors de la lecture des questions QCM:', {
+        activePackId,
+        error: questionsError,
+        message: questionsError.message,
+        details: questionsError.details,
+        hint: questionsError.hint,
+        code: questionsError.code,
+      });
+      return;
+    }
+
+    if (!questions?.length) {
+      console.warn('Aucune question liée aux QCM publiés du pack actif.', {
+        activePackId,
+        quizIds: packQuizzes.map((quiz) => quiz.id),
+      });
+      return;
+    }
+
+    console.warn('Aucun QCM affichable après filtrage. Vérifiez les matières masquées ou les policies RLS Supabase.', {
+      activePackId,
+      packQuizzes,
+      questionsCount: questions.length,
+    });
+  } catch (error) {
+    console.error('Diagnostic QCM étudiant impossible:', error);
+  }
 };
 
 export const listStudentQuizzes = async (activePackId, limit) => {
-  if (!activePackId) return [];
+  if (!activePackId) {
+    console.warn('Aucun pack associé à l’étudiant : impossible de charger les QCM.');
+    return [];
+  }
   const key = cacheKey('student:quizzes', activePackId, limit || 'all');
   return cached(key, async () => {
     if (!isSupabaseConfigured) {
       const demoData = await getDemoData();
-      const quizzes = demoData.quizzes.filter((quiz) => quiz.is_published && quiz.pack_id === activePackId);
+      const questionQuizIds = new Set(demoData.questions.map((question) => question.quiz_id));
+      const quizzes = demoData.quizzes.filter((quiz) => quiz.is_published && quiz.pack_id === activePackId && questionQuizIds.has(quiz.id));
       return limit ? quizzes.slice(0, limit) : quizzes;
     }
     let query = supabase
       .from('quizzes')
-      .select('id, title, description, subject_id, duration_minutes, created_at, subjects(name)')
+      .select('id, title, description, subject_id, duration_minutes, created_at, subjects(name, is_visible), questions!inner(id)')
       .eq('is_published', true)
       .eq('pack_id', activePackId)
       .order('created_at', { ascending: false });
@@ -310,8 +382,10 @@ export const listStudentQuizzes = async (activePackId, limit) => {
       });
       throw error;
     }
-    return data || [];
-  });
+    const quizzes = (data || []).filter((quiz) => quiz.subjects?.is_visible !== false && quiz.questions?.length);
+    if (!quizzes.length) await diagnoseStudentQuizVisibility(activePackId);
+    return quizzes.map(({ questions, ...quiz }) => quiz);
+  }, 10 * 1000);
 };
 
 export const listStudentRecordings = async (activePackId, limit) => {

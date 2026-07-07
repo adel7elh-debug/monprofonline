@@ -816,9 +816,24 @@ export const deleteSession = async (id) => {
   }
 };
 
+export const sanitizeFileName = (fileName) => {
+  const sanitized = String(fileName || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[–—−-]/g, '_')
+    .replace(/\s+/g, '_')
+    .replace(/[^a-zA-Z0-9._-]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^[._-]+|[._-]+$/g, '')
+    .toLowerCase();
+
+  return sanitized || `document-${Date.now()}.pdf`;
+};
+
 export const uploadDocumentPdf = async (file) => {
   if (!file) return '';
-  const filePath = `documents/${Date.now()}-${file.name.replaceAll(' ', '-')}`;
+  const safeFileName = sanitizeFileName(file.name);
+  const filePath = `documents/${Date.now()}-${safeFileName}`;
   if (!isSupabaseConfigured) return filePath;
   const { error } = await supabase.storage.from('documents').upload(filePath, file, {
     contentType: file.type || 'application/pdf',

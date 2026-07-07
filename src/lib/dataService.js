@@ -262,7 +262,7 @@ export const listStudentDocuments = async (activePackId) => {
     }
     const { data, error } = await supabase
       .from('documents')
-      .select('id, title, description, subject_id, document_type, is_visible, created_at, subjects(name)')
+      .select('id, title, description, subject_id, document_type, file_path, is_visible, created_at, subjects(name)')
       .eq('is_visible', true)
       .eq('pack_id', activePackId)
       .order('created_at', { ascending: false });
@@ -943,9 +943,4 @@ export const deleteRecording = async (recordingId) => {
   }
 
   return data;
-};
-
-export const getDocumentSignedUrl = async (documentId) => {
-  const data = await invokeFunction('generate-document-signed-url', { document_id: documentId });
-  return data?.signedUrl || data?.signed_url || '#';
 };

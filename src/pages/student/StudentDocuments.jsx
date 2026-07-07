@@ -5,7 +5,9 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { getDocumentSignedUrl, listStudentDocuments, listStudentSubjects } from '../../lib/dataService';
+import AlertMessage from '../../components/AlertMessage';
+import { listStudentDocuments, listStudentSubjects } from '../../lib/dataService';
+import { supabase } from '../../lib/supabaseClient';
 
 const types = ['support', 'resume', 'annale', 'correction'];
 const typeLabels = {
@@ -23,6 +25,7 @@ export default function StudentDocuments() {
   const [type, setType] = useState('');
   const [data, setData] = useState(null);
   const [openingAction, setOpeningAction] = useState(null);
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
     if (!activePack?.pack_id) {
@@ -42,14 +45,55 @@ export default function StudentDocuments() {
     return data.documents.filter((doc) => (!subject || doc.subject_id === subject) && (!type || doc.document_type === type));
   }, [data, subject, type]);
 
-  const openDocument = async (id, action) => {
-    const actionKey = `${id}:${action}`;
+  const handleOpenDocument = async (doc, action = 'open') => {
+    setMessage(null);
+    if (!doc.file_path) {
+      setMessage({ type: 'error', text: 'Fichier PDF introuvable pour ce document.' });
+      return;
+    }
+
+    const newWindow = window.open('', '_blank');
+    if (!newWindow) {
+      setMessage({ type: 'error', text: 'Autorisez les pop-ups pour ouvrir le PDF.' });
+      return;
+    }
+
+    const actionKey = `${doc.id}:${action}`;
     setOpeningAction(actionKey);
     try {
-      const url = await getDocumentSignedUrl(id);
-      if (url && url !== '#') window.open(url, '_blank', 'noopener,noreferrer');
+      const { data: signedData, error } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(doc.file_path, 3600);
+
+      if (error) {
+        newWindow.close();
+        console.error('Student document signed URL storage error:', {
+          documentId: doc.id,
+          filePath: doc.file_path,
+          error,
+          message: error.message,
+          statusCode: error.statusCode,
+        });
+        setMessage({ type: 'error', text: error.message || 'Impossible d’ouvrir le PDF.' });
+        return;
+      }
+
+      if (!signedData?.signedUrl) {
+        newWindow.close();
+        setMessage({ type: 'error', text: 'Impossible de générer le lien sécurisé du PDF.' });
+        return;
+      }
+
+      newWindow.location.href = signedData.signedUrl;
     } catch (error) {
-      console.error('Student document signed URL load failed:', error);
+      newWindow.close();
+      console.error('Student document signed URL load failed:', {
+        documentId: doc.id,
+        filePath: doc.file_path,
+        error,
+        message: error.message,
+      });
+      setMessage({ type: 'error', text: error.message || 'Impossible d’ouvrir le PDF.' });
     } finally {
       setOpeningAction(null);
     }
@@ -59,6 +103,11 @@ export default function StudentDocuments() {
   return (
     <div>
       <h1 className="text-3xl font-black text-navy">Supports PDF</h1>
+      {message ? (
+        <div className="mt-4">
+          <AlertMessage type={message.type}>{message.text}</AlertMessage>
+        </div>
+      ) : null}
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         <select value={subject} onChange={(e) => setSubject(e.target.value)} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
           <option value="">Toutes les matières</option>
@@ -81,15 +130,15 @@ export default function StudentDocuments() {
                 variant="secondary"
                 loading={openingAction === `${doc.id}:open`}
                 disabled={Boolean(openingAction)}
-                onClick={() => openDocument(doc.id, 'open')}
+                onClick={() => handleOpenDocument(doc, 'open')}
               >
-                <Eye className="h-4 w-4" />Consulter
+                <Eye className="h-4 w-4" />Lire le PDF
               </Button>
               <Button
                 variant="outline"
                 loading={openingAction === `${doc.id}:download`}
                 disabled={Boolean(openingAction)}
-                onClick={() => openDocument(doc.id, 'download')}
+                onClick={() => handleOpenDocument(doc, 'download')}
               >
                 <Download className="h-4 w-4" />Télécharger
               </Button>

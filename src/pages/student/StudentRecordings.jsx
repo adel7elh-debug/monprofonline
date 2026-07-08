@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import AlertMessage from '../../components/AlertMessage';
+import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
@@ -8,12 +9,19 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import usePersistedFilters from '../../hooks/usePersistedFilters';
 import { listStudentRecordings, listStudentSubjects } from '../../lib/dataService';
 import { formatDate } from '../../utils/formatDate';
-import { getYoutubeEmbedUrl } from '../../utils/youtube';
 
-const getRecordingLink = (recording) =>
-  recording.youtube_video_url || recording.youtube_playlist_url || recording.google_drive_url || '';
-
-const isGoogleDriveLink = (url) => url?.startsWith('https://drive.google.com/');
+const getRecordingLinkInfo = (recording) => {
+  if (recording.youtube_video_url) {
+    return { url: recording.youtube_video_url, label: 'YouTube', button: 'Ouvrir sur YouTube' };
+  }
+  if (recording.youtube_playlist_url) {
+    return { url: recording.youtube_playlist_url, label: 'Playlist', button: 'Ouvrir la playlist YouTube' };
+  }
+  if (recording.google_drive_url) {
+    return { url: recording.google_drive_url, label: 'Google Drive', button: 'Ouvrir sur Google Drive' };
+  }
+  return null;
+};
 
 export default function StudentRecordings() {
   const outletContext = useOutletContext() || {};
@@ -55,11 +63,6 @@ export default function StudentRecordings() {
     [data, filters],
   );
 
-  const openVideo = (url) => {
-    const newWindow = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!newWindow) setError('Autorisez les pop-ups pour ouvrir la vidéo.');
-  };
-
   if (!data) return <LoadingSpinner label="Chargement des données..." />;
 
   return (
@@ -81,43 +84,31 @@ export default function StudentRecordings() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {recordings.map((recording) => {
-          const videoUrl = getRecordingLink(recording);
-          const isDrive = isGoogleDriveLink(videoUrl);
-          const embedUrl = recording.embed_enabled && !isDrive ? getYoutubeEmbedUrl(videoUrl) : null;
+          const linkInfo = getRecordingLinkInfo(recording);
 
           return (
             <Card key={recording.id} className="p-5">
-              <h2 className="font-black text-navy">{recording.title}</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                {recording.subjects?.name || 'Matière'} - {formatDate(recording.session_date)}
-              </p>
-              {recording.description ? (
-                <p className="mt-3 text-sm leading-6 text-slate-600">{recording.description}</p>
-              ) : null}
-
-              {embedUrl ? (
-                <div className="mt-4 aspect-video overflow-hidden rounded-lg bg-navy shadow-sm">
-                  <iframe
-                    src={embedUrl}
-                    title={recording.title}
-                    className="h-full w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-black text-navy">{recording.title}</h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {recording.subjects?.name || 'Matière'} - {formatDate(recording.session_date)}
+                  </p>
                 </div>
+                {linkInfo ? <Badge tone="new">{linkInfo.label}</Badge> : null}
+              </div>
+
+              {recording.description ? (
+                <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{recording.description}</p>
               ) : null}
 
-              {videoUrl ? (
-                isDrive ? (
-                  <a href={videoUrl} target="_blank" rel="noopener noreferrer">
-                    <Button className="mt-4">Ouvrir la vidéo</Button>
-                  </a>
-                ) : (
-                  <Button className="mt-4" onClick={() => openVideo(videoUrl)}>
-                    Regarder la vidéo
-                  </Button>
-                )
-              ) : null}
+              {linkInfo ? (
+                <a href={linkInfo.url} target="_blank" rel="noopener noreferrer">
+                  <Button className="mt-4">{linkInfo.button}</Button>
+                </a>
+              ) : (
+                <p className="mt-4 text-sm font-semibold text-slate-500">Lien non disponible</p>
+              )}
             </Card>
           );
         })}

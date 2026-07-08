@@ -10,18 +10,11 @@ import usePersistedFilters from '../../hooks/usePersistedFilters';
 import { listStudentRecordings, listStudentSubjects } from '../../lib/dataService';
 import { formatDate } from '../../utils/formatDate';
 
-const getRecordingLinkInfo = (recording) => {
-  if (recording.youtube_video_url) {
-    return { url: recording.youtube_video_url, label: 'YouTube', button: 'Ouvrir sur YouTube' };
-  }
-  if (recording.youtube_playlist_url) {
-    return { url: recording.youtube_playlist_url, label: 'Playlist', button: 'Ouvrir la playlist YouTube' };
-  }
-  if (recording.google_drive_url) {
-    return { url: recording.google_drive_url, label: 'Google Drive', button: 'Ouvrir sur Google Drive' };
-  }
-  return null;
-};
+const getRecordingLinks = (recording) => [
+  recording.youtube_video_url ? { key: 'youtube', url: recording.youtube_video_url, label: 'YouTube', button: 'Ouvrir sur YouTube' } : null,
+  recording.youtube_playlist_url ? { key: 'playlist', url: recording.youtube_playlist_url, label: 'Playlist', button: 'Ouvrir la playlist YouTube' } : null,
+  recording.google_drive_url ? { key: 'google-drive', url: recording.google_drive_url, label: 'Google Drive', button: 'Ouvrir sur Google Drive' } : null,
+].filter(Boolean);
 
 export default function StudentRecordings() {
   const outletContext = useOutletContext() || {};
@@ -84,7 +77,7 @@ export default function StudentRecordings() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {recordings.map((recording) => {
-          const linkInfo = getRecordingLinkInfo(recording);
+          const links = getRecordingLinks(recording);
 
           return (
             <Card key={recording.id} className="p-5">
@@ -95,17 +88,25 @@ export default function StudentRecordings() {
                     {recording.subjects?.name || 'Matière'} - {formatDate(recording.session_date)}
                   </p>
                 </div>
-                {linkInfo ? <Badge tone="new">{linkInfo.label}</Badge> : null}
+                {links.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {links.map((link) => <Badge key={link.key} tone="new">{link.label}</Badge>)}
+                  </div>
+                ) : null}
               </div>
 
               {recording.description ? (
                 <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{recording.description}</p>
               ) : null}
 
-              {linkInfo ? (
-                <a href={linkInfo.url} target="_blank" rel="noopener noreferrer">
-                  <Button className="mt-4">{linkInfo.button}</Button>
-                </a>
+              {links.length ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {links.map((link) => (
+                    <a key={link.key} href={link.url} target="_blank" rel="noopener noreferrer">
+                      <Button>{link.button}</Button>
+                    </a>
+                  ))}
+                </div>
               ) : (
                 <p className="mt-4 text-sm font-semibold text-slate-500">Lien non disponible</p>
               )}

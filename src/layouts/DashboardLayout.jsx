@@ -29,7 +29,7 @@ const studentItems = [
   { to: '/student/documents', label: 'Supports PDF', icon: FileText },
   { to: '/student/quizzes', label: 'QCM', icon: ClipboardList },
   { to: '/student/history', label: 'Historique QCM', icon: Trophy },
-  { to: '/student/recordings', label: 'Enregistrements', icon: PlaySquare },
+  { to: '/student/recordings', label: 'Enregistrements vidéo', icon: PlaySquare },
   { to: '/student/agenda', label: 'Agenda', icon: CalendarDays },
   { to: '/student/profile', label: 'Profil', icon: Settings },
 ];
@@ -43,7 +43,7 @@ const adminItems = [
   { to: '/admin/documents', label: 'Documents PDF', icon: FileText },
   { to: '/admin/quizzes', label: 'QCM', icon: ClipboardList },
   { to: '/admin/results', label: 'Résultats', icon: Trophy },
-  { to: '/admin/recordings', label: 'Enregistrements', icon: PlaySquare },
+  { to: '/admin/recordings', label: 'Enregistrements vidéo', icon: PlaySquare },
   { to: '/admin/agenda', label: 'Agenda', icon: CalendarDays },
   { to: '/admin/messages', label: 'Messages contact', icon: MessageSquare },
 ];

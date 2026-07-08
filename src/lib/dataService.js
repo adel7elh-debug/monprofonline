@@ -77,15 +77,15 @@ export const listAdminQuizzes = () =>
 
 export const listRecordings = () =>
   safeSelect(
-    'recordings',
-    (q) => q.select('*, subjects(name)').eq('is_visible', true).order('session_date', { ascending: false }),
+    'video_recordings',
+    (q) => q.select('*, subjects(name), packs(name)').eq('is_visible', true).order('created_at', { ascending: false }),
     'recordings',
   );
 
 export const listAdminRecordings = () =>
   safeSelect(
-    'recordings',
-    (q) => q.select('*, subjects(name)').order('session_date', { ascending: false }),
+    'video_recordings',
+    (q) => q.select('*, subjects(name), packs(name)').order('created_at', { ascending: false }),
     'recordings',
   );
 
@@ -220,7 +220,7 @@ export const getStudentSubjectsOverview = async (activePackId) => {
       supabase.from('subjects').select('id, name, description, display_order').order('display_order'),
       supabase.from('documents').select('subject_id').eq('is_visible', true).eq('pack_id', activePackId),
       supabase.from('quizzes').select('subject_id').eq('is_published', true).eq('pack_id', activePackId),
-      supabase.from('recordings').select('subject_id').eq('is_visible', true).eq('pack_id', activePackId),
+      supabase.from('video_recordings').select('subject_id').eq('is_visible', true).eq('pack_id', activePackId),
     ]);
 
     const failed = [
@@ -389,7 +389,10 @@ export const listStudentQuizzes = async (activePackId, limit) => {
 };
 
 export const listStudentRecordings = async (activePackId, limit) => {
-  if (!activePackId) return [];
+  if (!activePackId) {
+    console.warn('Aucun pack actif : impossible de charger les enregistrements video.');
+    return [];
+  }
   const key = cacheKey('student:recordings', activePackId, limit || 'all');
   return cached(key, async () => {
     if (!isSupabaseConfigured) {
@@ -398,15 +401,15 @@ export const listStudentRecordings = async (activePackId, limit) => {
       return limit ? recordings.slice(0, limit) : recordings;
     }
     let query = supabase
-      .from('recordings')
-      .select('id, title, description, subject_id, youtube_video_url, youtube_playlist_url, session_date, is_visible, subjects(name)')
+      .from('video_recordings')
+      .select('id, title, description, subject_id, pack_id, video_url, file_path, duration_minutes, session_label, is_visible, created_at, subjects(name, is_visible)')
       .eq('is_visible', true)
       .eq('pack_id', activePackId)
-      .order('session_date', { ascending: false });
+      .order('created_at', { ascending: false });
     if (limit) query = query.limit(limit);
     const { data, error } = await query;
     if (error) {
-      console.error('Supabase student recordings select failed:', {
+      console.error('Supabase student video recordings select failed:', {
         activePackId,
         limit,
         error,
@@ -417,8 +420,52 @@ export const listStudentRecordings = async (activePackId, limit) => {
       });
       throw error;
     }
-    return data || [];
-  });
+    const recordings = (data || []).filter((recording) => recording.subjects?.is_visible !== false);
+    if (!recordings.length) await diagnoseStudentVideoVisibility(activePackId);
+    return recordings;
+  }, 10 * 1000);
+};
+
+const diagnoseStudentVideoVisibility = async (activePackId) => {
+  try {
+    const { data: visibleVideos, error: videosError } = await supabase
+      .from('video_recordings')
+      .select('id, title, pack_id, subject_id, is_visible')
+      .eq('is_visible', true);
+
+    if (videosError) {
+      console.error('Probleme RLS Supabase lors de la lecture des videos visibles:', {
+        activePackId,
+        error: videosError,
+        message: videosError.message,
+        details: videosError.details,
+        hint: videosError.hint,
+        code: videosError.code,
+      });
+      return;
+    }
+
+    if (!visibleVideos?.length) {
+      console.warn('Aucune video visible pour cet etudiant. Causes possibles : aucune video visible ou RLS Supabase trop restrictive.');
+      return;
+    }
+
+    const packVideos = visibleVideos.filter((video) => video.pack_id === activePackId);
+    if (!packVideos.length) {
+      console.warn('Aucune video visible liee au pack actif de l etudiant.', {
+        activePackId,
+        visibleVideos: visibleVideos.map((video) => ({ id: video.id, title: video.title, pack_id: video.pack_id })),
+      });
+      return;
+    }
+
+    console.warn('Aucun enregistrement video affichable apres filtrage. Verifiez les matieres masquees ou les policies RLS Supabase.', {
+      activePackId,
+      packVideos,
+    });
+  } catch (error) {
+    console.error('Diagnostic videos etudiant impossible:', error);
+  }
 };
 
 export const listStudentAttempts = async (studentId, limit) => {
@@ -820,7 +867,7 @@ export const sanitizeFileName = (fileName) => {
   const sanitized = String(fileName || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[–—−-]/g, '_')
+    .replace(/[\u2013\u2014\u2212-]/g, '_')
     .replace(/\s+/g, '_')
     .replace(/[^a-zA-Z0-9._-]/g, '')
     .replace(/_+/g, '_')
@@ -841,6 +888,68 @@ export const uploadDocumentPdf = async (file) => {
   });
   if (error) throw error;
   return filePath;
+};
+
+export const uploadVideoRecordingFile = async (file) => {
+  if (!file) return '';
+  const safeFileName = sanitizeFileName(file.name);
+  const filePath = `videos/${Date.now()}-${safeFileName}`;
+  if (!isSupabaseConfigured) return filePath;
+  const { error } = await supabase.storage.from('videos').upload(filePath, file, {
+    contentType: file.type || 'video/mp4',
+    upsert: false,
+  });
+  if (error) {
+    console.error('Supabase video upload failed:', {
+      fileName: file.name,
+      filePath,
+      error,
+      message: error.message,
+    });
+    throw error;
+  }
+  return filePath;
+};
+
+export const deleteVideoRecording = async (recording) => {
+  if (!recording?.id) throw new Error('recording_id requis.');
+  if (!isSupabaseConfigured) {
+    return {
+      success: true,
+      message: 'Enregistrement video supprime avec succes.',
+    };
+  }
+
+  if (recording.file_path) {
+    const { error: storageError } = await supabase.storage.from('videos').remove([recording.file_path]);
+    if (storageError) {
+      console.error('Supabase video file delete failed:', {
+        recordingId: recording.id,
+        filePath: recording.file_path,
+        error: storageError,
+        message: storageError.message,
+      });
+    }
+  }
+
+  const { error } = await supabase.from('video_recordings').delete().eq('id', recording.id);
+  if (error) {
+    console.error('Supabase video recording delete failed:', {
+      recordingId: recording.id,
+      error,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw error;
+  }
+
+  clearStudentCache();
+  return {
+    success: true,
+    message: 'Enregistrement video supprime avec succes.',
+  };
 };
 
 export const invokeFunction = async (name, body) => {

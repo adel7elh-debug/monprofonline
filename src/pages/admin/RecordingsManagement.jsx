@@ -1,57 +1,203 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AlertMessage from '../../components/AlertMessage';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import FormInput from '../../components/FormInput';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
 import Table from '../../components/Table';
-import LoadingSpinner from '../../components/LoadingSpinner';
 import { useAuth } from '../../context/AuthContext';
-import { createRow, deleteRecording, listAdminRecordings, listPacks, listSubjects, updateRow } from '../../lib/dataService';
-import { formatDate } from '../../utils/formatDate';
+import {
+  clearStudentCache,
+  createRow,
+  deleteVideoRecording,
+  listAdminRecordings,
+  listPacks,
+  listSubjects,
+  updateRow,
+  uploadVideoRecordingFile,
+} from '../../lib/dataService';
+
+const emptyForm = {
+  title: '',
+  description: '',
+  subject_id: '',
+  pack_id: '',
+  video_url: '',
+  duration_minutes: '',
+  session_label: '',
+  is_visible: true,
+};
+
+const mapRecordingToForm = (recording) => ({
+  title: recording.title || '',
+  description: recording.description || '',
+  subject_id: recording.subject_id || '',
+  pack_id: recording.pack_id || '',
+  video_url: recording.video_url || '',
+  duration_minutes: recording.duration_minutes || '',
+  session_label: recording.session_label || '',
+  is_visible: recording.is_visible !== false,
+});
+
+const isVideoFile = (file) => {
+  if (!file) return false;
+  return file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(file.name);
+};
 
 export default function RecordingsManagement() {
   const { profile } = useAuth();
   const [data, setData] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', subject_id: '', pack_id: '', youtube_video_url: '', youtube_playlist_url: '', session_date: '', embed_enabled: true, is_visible: true });
-  const load = () => Promise.all([listAdminRecordings(), listSubjects(), listPacks()]).then(([recordings, subjects, packs]) => {
-    setData({ recordings, subjects, packs });
-    setForm((current) => ({ ...current, subject_id: current.subject_id || subjects[0]?.id || '', pack_id: current.pack_id || packs[0]?.id || '' }));
-  });
-  useEffect(() => { load(); }, []);
+  const [search, setSearch] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [packFilter, setPackFilter] = useState('');
+
+  const load = () =>
+    Promise.all([listAdminRecordings(), listSubjects(), listPacks()]).then(([recordings, subjects, packs]) => {
+      setData({ recordings, subjects, packs });
+      setForm((current) => ({
+        ...current,
+        subject_id: current.subject_id || subjects[0]?.id || '',
+        pack_id: current.pack_id || packs[0]?.id || '',
+      }));
+    });
+
+  useEffect(() => {
+    load().catch((error) => {
+      console.error('Admin video recordings load failed:', error);
+      setData({ recordings: [], subjects: [], packs: [] });
+      setMessage({ type: 'error', text: 'Impossible de charger les enregistrements vidéo.' });
+    });
+  }, []);
+
+  const filteredRecordings = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return (data?.recordings || []).filter((recording) => {
+      const matchesSearch = !query || recording.title?.toLowerCase().includes(query);
+      const matchesSubject = !subjectFilter || recording.subject_id === subjectFilter;
+      const matchesPack = !packFilter || recording.pack_id === packFilter;
+      return matchesSearch && matchesSubject && matchesPack;
+    });
+  }, [data?.recordings, packFilter, search, subjectFilter]);
+
+  const resetForm = () => {
+    setEditing(null);
+    setSelectedFile(null);
+    setFileInputKey((value) => value + 1);
+    setForm({
+      ...emptyForm,
+      subject_id: data?.subjects?.[0]?.id || '',
+      pack_id: data?.packs?.[0]?.id || '',
+    });
+  };
+
   const submit = async (event) => {
     event.preventDefault();
-    await createRow('recordings', form);
-    setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', youtube_video_url: '', youtube_playlist_url: '', session_date: '', embed_enabled: true, is_visible: true });
-    load();
+    setMessage(null);
+
+    if (!form.title.trim() || !form.subject_id || !form.pack_id || (!form.video_url.trim() && !selectedFile && !editing?.file_path)) {
+      setMessage({ type: 'error', text: 'Veuillez remplir tous les champs obligatoires.' });
+      return;
+    }
+
+    if (selectedFile && !isVideoFile(selectedFile)) {
+      setMessage({ type: 'error', text: 'Veuillez sélectionner un fichier vidéo valide.' });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const uploadedPath = selectedFile ? await uploadVideoRecordingFile(selectedFile) : '';
+      const payload = {
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        subject_id: form.subject_id,
+        pack_id: form.pack_id,
+        video_url: form.video_url.trim() || null,
+        file_path: uploadedPath || editing?.file_path || null,
+        duration_minutes: form.duration_minutes ? Number(form.duration_minutes) : null,
+        session_label: form.session_label.trim() || null,
+        is_visible: Boolean(form.is_visible),
+      };
+
+      if (editing?.id) {
+        await updateRow('video_recordings', editing.id, payload);
+        setMessage({ type: 'success', text: 'Vidéo modifiée avec succès.' });
+      } else {
+        await createRow('video_recordings', payload);
+        setMessage({ type: 'success', text: 'Vidéo ajoutée avec succès.' });
+      }
+
+      clearStudentCache();
+      resetForm();
+      await load();
+    } catch (error) {
+      console.error('Video recording save failed:', {
+        payload: form,
+        selectedFile: selectedFile?.name,
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      setMessage({ type: 'error', text: error.message || 'Impossible d’enregistrer la vidéo.' });
+    } finally {
+      setSaving(false);
+    }
   };
-  const resetForm = () => {
-    setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', youtube_video_url: '', youtube_playlist_url: '', session_date: '', embed_enabled: true, is_visible: true });
+
+  const startEdit = (recording) => {
+    setMessage(null);
+    setEditing(recording);
+    setSelectedFile(null);
+    setFileInputKey((value) => value + 1);
+    setForm(mapRecordingToForm(recording));
   };
+
+  const toggleVisibility = async (recording) => {
+    setMessage(null);
+    try {
+      await updateRow('video_recordings', recording.id, { is_visible: !recording.is_visible });
+      clearStudentCache();
+      await load();
+    } catch (error) {
+      console.error('Video recording visibility update failed:', {
+        recordingId: recording.id,
+        error,
+        message: error.message,
+      });
+      setMessage({ type: 'error', text: error.message || 'Impossible de modifier le statut de la vidéo.' });
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     setMessage(null);
     try {
-      const response = await deleteRecording(deleteTarget.id);
-      setData((current) => ({
-        ...current,
-        recordings: (current?.recordings || []).filter((item) => item.id !== deleteTarget.id),
-      }));
+      const response = await deleteVideoRecording(deleteTarget);
       setDeleteTarget(null);
-      setMessage({ type: 'success', text: response?.message || 'Enregistrement supprimé avec succès.' });
-      load();
+      setMessage({ type: 'success', text: response?.message || 'Enregistrement vidéo supprimé avec succès.' });
+      await load();
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Impossible de supprimer cet enregistrement.' });
+      setMessage({ type: 'error', text: error.message || 'Impossible de supprimer cet enregistrement vidéo.' });
     } finally {
       setDeleting(false);
     }
   };
+
   if (!data) return <LoadingSpinner />;
+
   return (
     <div>
       {message ? (
@@ -59,40 +205,100 @@ export default function RecordingsManagement() {
           <AlertMessage type={message.type}>{message.text}</AlertMessage>
         </div>
       ) : null}
-      <h1 className="text-3xl font-black text-navy">Gestion des enregistrements</h1>
+
+      <h1 className="text-3xl font-black text-navy">Gestion des enregistrements vidéo</h1>
+
       <Card className="mt-5 p-5">
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-3">
           <FormInput label="Titre" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-          <FormInput label="Lien vidéo YouTube" value={form.youtube_video_url} onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })} />
-          <FormInput label="Lien playlist YouTube" value={form.youtube_playlist_url} onChange={(e) => setForm({ ...form, youtube_playlist_url: e.target.value })} />
+          <FormInput label="Type" value="Enregistrement vidéo" disabled />
+          <FormInput label="Durée (minutes)" type="number" min="1" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
+          <FormInput label="Séance" placeholder="Séance 1" value={form.session_label} onChange={(e) => setForm({ ...form, session_label: e.target.value })} />
+          <FormInput label="Lien vidéo" type="url" placeholder="YouTube, Google Drive, Vimeo..." value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} />
           <FormInput label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <FormInput label="Date de séance" type="datetime-local" value={form.session_date} onChange={(e) => setForm({ ...form, session_date: e.target.value })} />
-          <select value={form.subject_id} onChange={(e) => setForm({ ...form, subject_id: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-            {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
-          </select>
-          <select value={form.pack_id} onChange={(e) => setForm({ ...form, pack_id: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-            {data.packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
-          </select>
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit">Ajouter l’enregistrement</Button>
-            <Button type="button" variant="outline" onClick={resetForm}>Annuler</Button>
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Matière</span>
+            <select value={form.subject_id} onChange={(e) => setForm({ ...form, subject_id: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-navy shadow-sm" required>
+              {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Pack</span>
+            <select value={form.pack_id} onChange={(e) => setForm({ ...form, pack_id: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-navy shadow-sm" required>
+              {data.packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Fichier vidéo</span>
+            <input
+              key={fileInputKey}
+              type="file"
+              accept="video/*"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-navy shadow-sm"
+            />
+            {selectedFile ? <span className="mt-1 block text-xs text-slate-500">{selectedFile.name}</span> : null}
+            {!selectedFile && editing?.file_path ? <span className="mt-1 block text-xs text-slate-500">Fichier existant conservé.</span> : null}
+          </label>
+
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <input
+              type="checkbox"
+              checked={form.is_visible}
+              onChange={(e) => setForm({ ...form, is_visible: e.target.checked })}
+              className="h-4 w-4 rounded border-slate-300 text-royal"
+            />
+            Visible
+          </label>
+
+          <div className="flex flex-wrap items-end gap-2 md:col-span-2">
+            <Button type="submit" loading={saving}>{editing ? 'Modifier' : 'Ajouter'}</Button>
+            <Button type="button" variant="outline" onClick={resetForm} disabled={saving}>Annuler</Button>
           </div>
         </form>
       </Card>
+
+      <Card className="mt-6 p-4">
+        <div className="grid gap-3 md:grid-cols-3">
+          <FormInput label="Recherche par titre" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Filtre par matière</span>
+            <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-navy shadow-sm">
+              <option value="">Toutes les matières</option>
+              {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Filtre par pack</span>
+            <select value={packFilter} onChange={(e) => setPackFilter(e.target.value)} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-navy shadow-sm">
+              <option value="">Tous les packs</option>
+              {data.packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
+            </select>
+          </label>
+        </div>
+      </Card>
+
       <div className="mt-6">
         <Table
-          rows={data.recordings}
+          rows={filteredRecordings}
+          emptyTitle="Aucun enregistrement vidéo."
           columns={[
             { key: 'title', label: 'Titre' },
             { key: 'subject', label: 'Matière', render: (row) => row.subjects?.name || '-' },
-            { key: 'session_date', label: 'Date', render: (row) => formatDate(row.session_date) },
-            { key: 'is_visible', label: 'Visible', render: (row) => <Badge tone={row.is_visible ? 'active' : 'inactive'}>{row.is_visible ? 'Oui' : 'Non'}</Badge> },
+            { key: 'pack', label: 'Pack', render: (row) => row.packs?.name || '-' },
+            { key: 'session_label', label: 'Séance', render: (row) => row.session_label || '-' },
+            { key: 'duration_minutes', label: 'Durée', render: (row) => (row.duration_minutes ? `${row.duration_minutes} min` : '-') },
+            { key: 'is_visible', label: 'Statut', render: (row) => <Badge tone={row.is_visible ? 'active' : 'inactive'}>{row.is_visible ? 'Visible' : 'Masqué'}</Badge> },
             {
               key: 'actions',
               label: 'Actions',
               render: (row) => (
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => updateRow('recordings', row.id, { is_visible: !row.is_visible }).then(load)}>
+                  <Button variant="outline" onClick={() => startEdit(row)}>Modifier</Button>
+                  <Button variant="outline" onClick={() => toggleVisibility(row)}>
                     {row.is_visible ? 'Masquer' : 'Afficher'}
                   </Button>
                   {profile?.role === 'admin' ? (
@@ -113,14 +319,15 @@ export default function RecordingsManagement() {
           ]}
         />
       </div>
-      <Modal open={Boolean(deleteTarget)} title="Supprimer cet enregistrement ?" onClose={() => setDeleteTarget(null)}>
+
+      <Modal open={Boolean(deleteTarget)} title="Supprimer cet enregistrement vidéo ?" onClose={() => setDeleteTarget(null)}>
         <div className="grid gap-4">
           <p className="text-sm text-slate-700">
-            Cette action supprimera l’enregistrement de la plateforme. Cette action est irréversible.
+            Cette action supprimera l’enregistrement vidéo de la plateforme. Elle est irréversible.
           </p>
           <div className="rounded-md border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-900">
             <p className="font-semibold">{deleteTarget?.title || 'Enregistrement sélectionné'}</p>
-            {deleteTarget?.youtube_video_url ? <p>{deleteTarget.youtube_video_url}</p> : null}
+            {deleteTarget?.video_url ? <p>{deleteTarget.video_url}</p> : null}
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>

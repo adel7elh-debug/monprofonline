@@ -81,7 +81,7 @@ export default function StudentDashboard() {
           <Link to="/student/documents"><Button variant="outline">Supports PDF</Button></Link>
           <Link to="/student/quizzes"><Button variant="outline">QCM</Button></Link>
           <Link to="/student/agenda"><Button variant="outline">Agenda</Button></Link>
-          <Link to="/student/recordings"><Button variant="outline">Enregistrements</Button></Link>
+          <Link to="/student/recordings"><Button variant="outline">Enregistrements vidéo</Button></Link>
         </div>
       </Card>
 

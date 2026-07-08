@@ -43,7 +43,7 @@ export default function AdminDashboard() {
           ['Demandes en attente', data.requests.filter((item) => item.status === 'pending').length],
           ['Supports', data.documents.length],
           ['QCM', data.quizzes.length],
-          ['Enregistrements', data.recordings.length],
+          ['Enregistrements vidéo', data.recordings.length],
           ['Tentatives QCM', data.attempts.length],
           ['Score moyen', `${average}%`],
         ].map(([label, value]) => (

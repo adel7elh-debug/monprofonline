@@ -4,12 +4,13 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import usePersistedFilters from '../../hooks/usePersistedFilters';
 import { listStudentQuizzes, listStudentSubjects } from '../../lib/dataService';
 
 export default function StudentQuizzes() {
   const outletContext = useOutletContext() || {};
   const { activePack } = outletContext;
-  const [subject, setSubject] = useState('');
+  const [filters, setFilters] = usePersistedFilters('monprof_student_quizzes_filters', { subject: '' });
   const [data, setData] = useState(null);
   useEffect(() => {
     if (!activePack?.pack_id) {
@@ -17,18 +18,21 @@ export default function StudentQuizzes() {
       return;
     }
     Promise.all([listStudentSubjects(activePack.pack_id), listStudentQuizzes(activePack.pack_id)])
-      .then(([subjects, quizzes]) => setData({ subjects, quizzes }))
+      .then(([subjects, quizzes]) => {
+        if (import.meta.env.DEV) console.log('données récupérées QCM étudiant', { subjects, quizzes });
+        setData({ subjects, quizzes });
+      })
       .catch((error) => {
-        console.error('Student quizzes load failed:', error);
+        console.error('Erreur Supabase exacte QCM étudiant:', error);
         setData({ subjects: [], quizzes: [] });
       });
   }, [activePack?.pack_id]);
-  const quizzes = useMemo(() => data?.quizzes.filter((quiz) => !subject || quiz.subject_id === subject) || [], [data, subject]);
-  if (!data) return <LoadingSpinner label="Chargement des QCM..." />;
+  const quizzes = useMemo(() => data?.quizzes.filter((quiz) => !filters.subject || quiz.subject_id === filters.subject) || [], [data, filters]);
+  if (!data) return <LoadingSpinner label="Chargement des données..." />;
   return (
     <div>
       <h1 className="text-3xl font-black text-navy">QCM</h1>
-      <select value={subject} onChange={(e) => setSubject(e.target.value)} className="focus-ring mt-5 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+      <select value={filters.subject} onChange={(e) => setFilters({ ...filters, subject: e.target.value })} className="focus-ring mt-5 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
         <option value="">Toutes les matières</option>
         {data.subjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>

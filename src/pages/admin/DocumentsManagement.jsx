@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AlertMessage from '../../components/AlertMessage';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import FormInput from '../../components/FormInput';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
 import Table from '../../components/Table';
-import LoadingSpinner from '../../components/LoadingSpinner';
 import { useAuth } from '../../context/AuthContext';
+import usePersistedFilters from '../../hooks/usePersistedFilters';
+import usePersistedForm from '../../hooks/usePersistedForm';
 import { createRow, deleteDocument, listAdminDocuments, listPacks, listSubjects, uploadDocumentPdf } from '../../lib/dataService';
 
-const draftKey = 'monprof-admin-document-draft';
+const draftKey = 'monprof_pdf_draft';
+const filtersKey = 'monprof_pdf_filters';
 const maxPdfSize = 20 * 1024 * 1024;
 
 const emptyForm = {
@@ -22,13 +25,12 @@ const emptyForm = {
   is_visible: true,
 };
 
-const getDraft = () => {
-  try {
-    return JSON.parse(localStorage.getItem(draftKey) || '{}');
-  } catch {
-    return {};
-  }
-};
+const documentTypes = [
+  ['support', 'Support'],
+  ['resume', 'Résumé'],
+  ['annale', 'Annale'],
+  ['correction', 'Correction'],
+];
 
 export default function DocumentsManagement() {
   const { profile } = useAuth();
@@ -36,43 +38,50 @@ export default function DocumentsManagement() {
   const [file, setFile] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [saving, setSaving] = useState(false);
-  const skipDraftSave = useRef(false);
   const [message, setMessage] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [form, setForm] = useState(() => ({ ...emptyForm, ...getDraft() }));
-  const load = () => Promise.all([listAdminDocuments(), listSubjects(), listPacks()]).then(([documents, subjects, packs]) => {
-    setData({ documents, subjects, packs });
-    setForm((current) => ({ ...current, subject_id: current.subject_id || subjects[0]?.id || '', pack_id: current.pack_id || packs[0]?.id || '' }));
-  });
-  useEffect(() => { load(); }, []);
+  const [form, setForm, resetPersistedForm] = usePersistedForm(draftKey, emptyForm);
+  const [filters, setFilters] = usePersistedFilters(filtersKey, { search: '', subject: '', pack: '', type: '' });
+
+  const load = () =>
+    Promise.all([listAdminDocuments(), listSubjects(), listPacks()]).then(([documents, subjects, packs]) => {
+      if (import.meta.env.DEV) console.log('données récupérées documents PDF', { documents, subjects, packs });
+      setData({ documents, subjects, packs });
+      setForm((current) => ({
+        ...current,
+        subject_id: current.subject_id || subjects[0]?.id || '',
+        pack_id: current.pack_id || packs[0]?.id || '',
+      }));
+    });
 
   useEffect(() => {
-    if (skipDraftSave.current) {
-      localStorage.removeItem(draftKey);
-      skipDraftSave.current = false;
-      return;
-    }
-    localStorage.setItem(draftKey, JSON.stringify({
-      title: form.title,
-      description: form.description,
-      subject_id: form.subject_id,
-      pack_id: form.pack_id,
-      document_type: form.document_type,
-      is_visible: form.is_visible,
-    }));
-  }, [form]);
+    load().catch((error) => {
+      console.error('Erreur Supabase exacte documents PDF:', error);
+      setData({ documents: [], subjects: [], packs: [] });
+      setMessage({ type: 'error', text: error.message || 'Impossible de charger les données.' });
+    });
+  }, []);
+
+  const filteredDocuments = useMemo(() => {
+    const query = filters.search.trim().toLowerCase();
+    return (data?.documents || []).filter((document) => {
+      if (query && !document.title?.toLowerCase().includes(query)) return false;
+      if (filters.subject && document.subject_id !== filters.subject) return false;
+      if (filters.pack && document.pack_id !== filters.pack) return false;
+      if (filters.type && document.document_type !== filters.type) return false;
+      return true;
+    });
+  }, [data?.documents, filters]);
 
   const resetForm = () => {
-    setForm({
+    resetPersistedForm({
       ...emptyForm,
       subject_id: data?.subjects[0]?.id || '',
       pack_id: data?.packs[0]?.id || '',
     });
     setFile(null);
     setFileInputKey((value) => value + 1);
-    skipDraftSave.current = true;
-    localStorage.removeItem(draftKey);
   };
 
   const validateFile = (nextFile) => {
@@ -108,7 +117,7 @@ export default function DocumentsManagement() {
     setSaving(true);
     try {
       const file_path = await uploadDocumentPdf(file);
-      const created = await createRow('documents', {
+      await createRow('documents', {
         title: form.title.trim(),
         description: form.description.trim() || null,
         subject_id: form.subject_id,
@@ -117,15 +126,11 @@ export default function DocumentsManagement() {
         file_path,
         is_visible: true,
       });
-      setData((current) => ({
-        ...current,
-        documents: [created, ...(current?.documents || [])],
-      }));
       resetForm();
       setMessage({ type: 'success', text: 'Document ajouté avec succès.' });
       await load();
     } catch (error) {
-      console.error('Supabase document add error:', {
+      console.error('Erreur Supabase exacte ajout document PDF:', {
         form,
         file: file ? { name: file.name, size: file.size, type: file.type } : null,
         error,
@@ -139,26 +144,26 @@ export default function DocumentsManagement() {
       setSaving(false);
     }
   };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     setMessage(null);
     try {
       const response = await deleteDocument(deleteTarget.id);
-      setData((current) => ({
-        ...current,
-        documents: (current?.documents || []).filter((item) => item.id !== deleteTarget.id),
-      }));
       setDeleteTarget(null);
       setMessage({ type: 'success', text: response?.message || 'Document supprimé avec succès.' });
-      load();
+      await load();
     } catch (error) {
+      console.error('Erreur Supabase exacte suppression document PDF:', error);
       setMessage({ type: 'error', text: error.message || 'Impossible de supprimer ce document.' });
     } finally {
       setDeleting(false);
     }
   };
-  if (!data) return <LoadingSpinner />;
+
+  if (!data) return <LoadingSpinner label="Chargement des données..." />;
+
   return (
     <div>
       {message ? (
@@ -197,12 +202,7 @@ export default function DocumentsManagement() {
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate-700">Type</span>
             <select value={form.document_type} onChange={(e) => setForm({ ...form, document_type: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-              {[
-                ['support', 'Support'],
-                ['resume', 'Résumé'],
-                ['annale', 'Annale'],
-                ['correction', 'Correction'],
-              ].map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              {documentTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
           <div className="flex flex-wrap gap-2 md:col-span-3">
@@ -211,9 +211,37 @@ export default function DocumentsManagement() {
           </div>
         </form>
       </Card>
+
+      <Card className="mt-5 p-5">
+        <div className="grid gap-3 md:grid-cols-4">
+          <FormInput label="Recherche" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Matière</span>
+            <select value={filters.subject} onChange={(e) => setFilters({ ...filters, subject: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="">Toutes les matières</option>
+              {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Pack</span>
+            <select value={filters.pack} onChange={(e) => setFilters({ ...filters, pack: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="">Tous les packs</option>
+              {data.packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Type</span>
+            <select value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="">Tous les types</option>
+              {documentTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+        </div>
+      </Card>
+
       <div className="mt-6">
         <Table
-          rows={data.documents}
+          rows={filteredDocuments}
           columns={[
             { key: 'title', label: 'Titre' },
             { key: 'document_type', label: 'Type' },

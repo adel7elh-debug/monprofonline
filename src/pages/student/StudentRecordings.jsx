@@ -5,6 +5,7 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import usePersistedFilters from '../../hooks/usePersistedFilters';
 import { listStudentRecordings, listStudentSubjects } from '../../lib/dataService';
 import { formatDate } from '../../utils/formatDate';
 import { getYoutubeEmbedUrl } from '../../utils/youtube';
@@ -12,7 +13,7 @@ import { getYoutubeEmbedUrl } from '../../utils/youtube';
 export default function StudentRecordings() {
   const outletContext = useOutletContext() || {};
   const { activePack } = outletContext;
-  const [subject, setSubject] = useState('');
+  const [filters, setFilters] = usePersistedFilters('monprof_student_recordings_filters', { subject: '' });
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
@@ -45,8 +46,8 @@ export default function StudentRecordings() {
   }, [activePack?.pack_id]);
 
   const recordings = useMemo(
-    () => data?.recordings.filter((item) => !subject || item.subject_id === subject) || [],
-    [data, subject],
+    () => data?.recordings.filter((item) => !filters.subject || item.subject_id === filters.subject) || [],
+    [data, filters],
   );
 
   const openVideo = (url) => {
@@ -54,7 +55,7 @@ export default function StudentRecordings() {
     if (!newWindow) setError('Autorisez les pop-ups pour ouvrir la vidéo.');
   };
 
-  if (!data) return <LoadingSpinner label="Chargement des enregistrements vidéo..." />;
+  if (!data) return <LoadingSpinner label="Chargement des données..." />;
 
   return (
     <div>
@@ -68,7 +69,7 @@ export default function StudentRecordings() {
         </div>
       ) : null}
 
-      <select value={subject} onChange={(e) => setSubject(e.target.value)} className="focus-ring mt-5 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+      <select value={filters.subject} onChange={(e) => setFilters({ ...filters, subject: e.target.value })} className="focus-ring mt-5 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
         <option value="">Toutes les matières</option>
         {data.subjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </select>

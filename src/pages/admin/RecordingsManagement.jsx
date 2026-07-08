@@ -8,6 +8,8 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
 import Table from '../../components/Table';
 import { useAuth } from '../../context/AuthContext';
+import usePersistedFilters from '../../hooks/usePersistedFilters';
+import usePersistedForm from '../../hooks/usePersistedForm';
 import {
   clearStudentCache,
   createRow,
@@ -46,18 +48,17 @@ const mapRecordingToForm = (recording) => ({
 export default function RecordingsManagement() {
   const { profile } = useAuth();
   const [data, setData] = useState(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm, resetPersistedForm] = usePersistedForm('monprof_recording_draft', emptyForm);
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [search, setSearch] = useState('');
-  const [subjectFilter, setSubjectFilter] = useState('');
-  const [packFilter, setPackFilter] = useState('');
+  const [filters, setFilters] = usePersistedFilters('monprof_recording_filters', { search: '', subject: '', pack: '' });
 
   const load = () =>
     Promise.all([listAdminRecordings(), listSubjects(), listPacks()]).then(([recordings, subjects, packs]) => {
+      if (import.meta.env.DEV) console.log('données récupérées enregistrements vidéo', { recordings, subjects, packs });
       setData({ recordings, subjects, packs });
       setForm((current) => ({
         ...current,
@@ -75,18 +76,18 @@ export default function RecordingsManagement() {
   }, []);
 
   const filteredRecordings = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = filters.search.trim().toLowerCase();
     return (data?.recordings || []).filter((recording) => {
       const matchesSearch = !query || recording.title?.toLowerCase().includes(query);
-      const matchesSubject = !subjectFilter || recording.subject_id === subjectFilter;
-      const matchesPack = !packFilter || recording.pack_id === packFilter;
+      const matchesSubject = !filters.subject || recording.subject_id === filters.subject;
+      const matchesPack = !filters.pack || recording.pack_id === filters.pack;
       return matchesSearch && matchesSubject && matchesPack;
     });
-  }, [data?.recordings, packFilter, search, subjectFilter]);
+  }, [data?.recordings, filters]);
 
   const resetForm = () => {
     setEditing(null);
-    setForm({
+    resetPersistedForm({
       ...emptyForm,
       subject_id: data?.subjects?.[0]?.id || '',
       pack_id: data?.packs?.[0]?.id || '',
@@ -181,7 +182,7 @@ export default function RecordingsManagement() {
     }
   };
 
-  if (!data) return <LoadingSpinner />;
+  if (!data) return <LoadingSpinner label="Chargement des données..." />;
 
   return (
     <div>
@@ -235,17 +236,17 @@ export default function RecordingsManagement() {
 
       <Card className="mt-6 p-4">
         <div className="grid gap-3 md:grid-cols-3">
-          <FormInput label="Recherche par titre" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <FormInput label="Recherche par titre" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate-700">Filtre par matière</span>
-            <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-navy shadow-sm">
+            <select value={filters.subject} onChange={(e) => setFilters({ ...filters, subject: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-navy shadow-sm">
               <option value="">Toutes les matières</option>
               {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
             </select>
           </label>
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate-700">Filtre par pack</span>
-            <select value={packFilter} onChange={(e) => setPackFilter(e.target.value)} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-navy shadow-sm">
+            <select value={filters.pack} onChange={(e) => setFilters({ ...filters, pack: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-navy shadow-sm">
               <option value="">Tous les packs</option>
               {data.packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
             </select>

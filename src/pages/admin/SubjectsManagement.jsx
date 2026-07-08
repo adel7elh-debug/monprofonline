@@ -5,6 +5,8 @@ import Card from '../../components/Card';
 import FormInput from '../../components/FormInput';
 import Table from '../../components/Table';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import usePersistedFilters from '../../hooks/usePersistedFilters';
+import usePersistedForm from '../../hooks/usePersistedForm';
 import { createRow, deleteRow, listSubjects, updateRow } from '../../lib/dataService';
 
 const categories = [
@@ -86,30 +88,38 @@ const defaultSubjects = [
 
 export default function SubjectsManagement() {
   const [subjects, setSubjects] = useState(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm, resetPersistedForm] = usePersistedForm('monprof_subject_draft', emptyForm);
   const [editingId, setEditingId] = useState(null);
-  const [query, setQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [filters, setFilters] = usePersistedFilters('monprof_subject_filters', { query: '', category: '' });
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const load = () => listSubjects().then(setSubjects);
+  const load = () => listSubjects().then((items) => {
+    if (import.meta.env.DEV) console.log('données récupérées matières', items);
+    setSubjects(items);
+  });
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load().catch((err) => {
+      console.error('Erreur Supabase exacte matières:', err);
+      setSubjects([]);
+      setError(err.message || 'Impossible de charger les données.');
+    });
+  }, []);
 
   const rows = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = filters.query.trim().toLowerCase();
     return (subjects || []).filter((subject) => {
       if (normalizedQuery && !subject.name?.toLowerCase().includes(normalizedQuery)) return false;
-      if (categoryFilter && subject.category !== categoryFilter) return false;
+      if (filters.category && subject.category !== filters.category) return false;
       return true;
     });
-  }, [subjects, query, categoryFilter]);
+  }, [subjects, filters]);
 
   const resetForm = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    resetPersistedForm(emptyForm);
   };
 
   const submit = async (event) => {
@@ -194,7 +204,7 @@ export default function SubjectsManagement() {
     }
   };
 
-  if (!subjects) return <LoadingSpinner />;
+  if (!subjects) return <LoadingSpinner label="Chargement des données..." />;
 
   return (
     <div>
@@ -242,10 +252,10 @@ export default function SubjectsManagement() {
 
       <Card className="mt-5 p-5">
         <div className="grid gap-3 md:grid-cols-2">
-          <FormInput label="Recherche par nom" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <FormInput label="Recherche par nom" value={filters.query} onChange={(e) => setFilters({ ...filters, query: e.target.value })} />
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate-700">Filtrer par catégorie</span>
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+            <select value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })} className="focus-ring w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
               <option value="">Toutes les catégories</option>
               {categories.map((category) => <option key={category} value={category}>{category}</option>)}
             </select>

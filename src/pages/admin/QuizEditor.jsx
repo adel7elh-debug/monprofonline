@@ -5,6 +5,7 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import FormInput from '../../components/FormInput';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import usePersistedForm from '../../hooks/usePersistedForm';
 import { createRow, deleteRow, getQuizWithQuestions, updateRow } from '../../lib/dataService';
 
 const emptyAnswers = () => [
@@ -16,21 +17,50 @@ const emptyAnswers = () => [
 
 const answerLabels = ['A', 'B', 'C', 'D'];
 
+const emptyDraft = {
+  question: { question_text: '', explanation: '', display_order: 0 },
+  answers: emptyAnswers(),
+  editingQuestionId: null,
+};
+
 export default function QuizEditor() {
   const { quizId } = useParams();
   const [data, setData] = useState(null);
-  const [question, setQuestion] = useState({ question_text: '', explanation: '', display_order: 0 });
-  const [answers, setAnswers] = useState(emptyAnswers());
-  const [editingQuestionId, setEditingQuestionId] = useState(null);
+  const [draft, setDraft, resetDraft] = usePersistedForm(`monprof_qcm_question_draft_${quizId}`, emptyDraft);
   const [message, setMessage] = useState(null);
 
-  const load = () => getQuizWithQuestions(quizId).then(setData);
-  useEffect(() => { load(); }, [quizId]);
+  const question = draft.question;
+  const answers = draft.answers;
+  const editingQuestionId = draft.editingQuestionId;
+
+  const load = () =>
+    getQuizWithQuestions(quizId).then((nextData) => {
+      if (import.meta.env.DEV) console.log('données récupérées éditeur QCM', nextData);
+      setData(nextData);
+    });
+
+  useEffect(() => {
+    load().catch((error) => {
+      console.error('Erreur Supabase exacte éditeur QCM:', error);
+      setMessage({ type: 'error', text: error.message || 'Impossible de charger les données.' });
+      setData({ quiz: null, questions: [] });
+    });
+  }, [quizId]);
 
   const resetForm = () => {
-    setQuestion({ question_text: '', explanation: '', display_order: 0 });
-    setAnswers(emptyAnswers());
-    setEditingQuestionId(null);
+    resetDraft({
+      question: { question_text: '', explanation: '', display_order: 0 },
+      answers: emptyAnswers(),
+      editingQuestionId: null,
+    });
+  };
+
+  const setQuestion = (nextQuestion) => setDraft((current) => ({ ...current, question: nextQuestion }));
+  const setAnswers = (updater) => {
+    setDraft((current) => ({
+      ...current,
+      answers: typeof updater === 'function' ? updater(current.answers) : updater,
+    }));
   };
 
   const setCorrectAnswer = (index) => {
@@ -46,21 +76,34 @@ export default function QuizEditor() {
       return;
     }
 
-    if (editingQuestionId) {
-      await updateRow('questions', editingQuestionId, question);
-      await Promise.all(answers.map((answer) => {
-        const payload = { answer_text: answer.answer_text, is_correct: answer.is_correct, question_id: editingQuestionId };
-        return answer.id ? updateRow('answers', answer.id, payload) : createRow('answers', payload);
-      }));
-      setMessage({ type: 'success', text: 'Question modifiée avec succès.' });
-    } else {
-      const created = await createRow('questions', { ...question, quiz_id: quizId });
-      await Promise.all(answers.map((answer) => createRow('answers', { ...answer, question_id: created.id })));
-      setMessage({ type: 'success', text: 'Question ajoutée avec succès.' });
-    }
+    try {
+      if (editingQuestionId) {
+        await updateRow('questions', editingQuestionId, question);
+        await Promise.all(answers.map((answer) => {
+          const payload = { answer_text: answer.answer_text, is_correct: answer.is_correct, question_id: editingQuestionId };
+          return answer.id ? updateRow('answers', answer.id, payload) : createRow('answers', payload);
+        }));
+        setMessage({ type: 'success', text: 'Question modifiée avec succès.' });
+      } else {
+        const created = await createRow('questions', { ...question, quiz_id: quizId });
+        await Promise.all(answers.map((answer) => createRow('answers', { ...answer, question_id: created.id })));
+        setMessage({ type: 'success', text: 'Question ajoutée avec succès.' });
+      }
 
-    resetForm();
-    load();
+      resetForm();
+      await load();
+    } catch (error) {
+      console.error('Erreur Supabase exacte question QCM:', {
+        question,
+        answers,
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      setMessage({ type: 'error', text: error.message || 'Impossible d’enregistrer la question.' });
+    }
   };
 
   const editQuestion = (item) => {
@@ -70,27 +113,34 @@ export default function QuizEditor() {
       is_correct: Boolean(item.answers?.[index]?.is_correct),
     }));
     if (!nextAnswers.some((answer) => answer.is_correct)) nextAnswers[0].is_correct = true;
-    setQuestion({
-      question_text: item.question_text,
-      explanation: item.explanation || '',
-      display_order: item.display_order || 0,
+    setDraft({
+      question: {
+        question_text: item.question_text,
+        explanation: item.explanation || '',
+        display_order: item.display_order || 0,
+      },
+      answers: nextAnswers,
+      editingQuestionId: item.id,
     });
-    setAnswers(nextAnswers);
-    setEditingQuestionId(item.id);
     setMessage(null);
   };
 
   const removeQuestion = async (item) => {
     const confirmed = window.confirm('Supprimer cette question ? Cette action est irréversible.');
     if (!confirmed) return;
-    await Promise.all((item.answers || []).map((answer) => deleteRow('answers', answer.id)));
-    await deleteRow('questions', item.id);
-    if (editingQuestionId === item.id) resetForm();
-    setMessage({ type: 'success', text: 'Question supprimée avec succès.' });
-    load();
+    try {
+      await Promise.all((item.answers || []).map((answer) => deleteRow('answers', answer.id)));
+      await deleteRow('questions', item.id);
+      if (editingQuestionId === item.id) resetForm();
+      setMessage({ type: 'success', text: 'Question supprimée avec succès.' });
+      await load();
+    } catch (error) {
+      console.error('Erreur Supabase exacte suppression question QCM:', error);
+      setMessage({ type: 'error', text: error.message || 'Impossible de supprimer la question.' });
+    }
   };
 
-  if (!data) return <LoadingSpinner />;
+  if (!data) return <LoadingSpinner label="Chargement des données..." />;
 
   return (
     <div>

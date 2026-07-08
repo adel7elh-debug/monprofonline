@@ -1,44 +1,102 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AlertMessage from '../../components/AlertMessage';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import FormInput from '../../components/FormInput';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import Modal from '../../components/Modal';
 import Table from '../../components/Table';
-import LoadingSpinner from '../../components/LoadingSpinner';
 import { useAuth } from '../../context/AuthContext';
+import usePersistedFilters from '../../hooks/usePersistedFilters';
+import usePersistedForm from '../../hooks/usePersistedForm';
 import { createRow, importQuizQuestions, listAdminQuizzes, listPacks, listSubjects, updateRow } from '../../lib/dataService';
 import { parseQuestionImportFile, validateQuestionImportRows } from '../../utils/questionImport';
+
+const emptyForm = {
+  title: '',
+  description: '',
+  subject_id: '',
+  pack_id: '',
+  duration_minutes: 30,
+  is_published: false,
+};
 
 export default function QuizzesManagement() {
   const { profile } = useAuth();
   const [data, setData] = useState(null);
-  const [form, setForm] = useState({ title: '', description: '', subject_id: '', pack_id: '', duration_minutes: 30, is_published: false });
+  const [form, setForm, resetPersistedForm] = usePersistedForm('monprof_qcm_draft', emptyForm);
+  const [filters, setFilters] = usePersistedFilters('monprof_qcm_filters', { search: '', subject: '', pack: '' });
   const [importModal, setImportModal] = useState(false);
   const [importRows, setImportRows] = useState([]);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState(null);
-  const load = () => Promise.all([listAdminQuizzes(), listSubjects(), listPacks()]).then(([quizzes, subjects, packs]) => {
-    setData({ quizzes, subjects, packs });
-    setForm((current) => ({ ...current, subject_id: current.subject_id || subjects[0]?.id || '', pack_id: current.pack_id || packs[0]?.id || '' }));
-  });
-  useEffect(() => { load(); }, []);
+
+  const load = () =>
+    Promise.all([listAdminQuizzes(), listSubjects(), listPacks()]).then(([quizzes, subjects, packs]) => {
+      if (import.meta.env.DEV) console.log('données récupérées QCM admin', { quizzes, subjects, packs });
+      setData({ quizzes, subjects, packs });
+      setForm((current) => ({
+        ...current,
+        subject_id: current.subject_id || subjects[0]?.id || '',
+        pack_id: current.pack_id || packs[0]?.id || '',
+      }));
+    });
+
+  useEffect(() => {
+    load().catch((error) => {
+      console.error('Erreur Supabase exacte QCM admin:', error);
+      setData({ quizzes: [], subjects: [], packs: [] });
+      setMessage({ type: 'error', text: error.message || 'Impossible de charger les données.' });
+    });
+  }, []);
+
+  const rows = useMemo(() => {
+    const query = filters.search.trim().toLowerCase();
+    return (data?.quizzes || []).filter((quiz) => {
+      if (query && !quiz.title?.toLowerCase().includes(query)) return false;
+      if (filters.subject && quiz.subject_id !== filters.subject) return false;
+      if (filters.pack && quiz.pack_id !== filters.pack) return false;
+      return true;
+    });
+  }, [data?.quizzes, filters]);
+
+  const resetForm = () => {
+    resetPersistedForm({
+      ...emptyForm,
+      subject_id: data?.subjects[0]?.id || '',
+      pack_id: data?.packs[0]?.id || '',
+    });
+  };
+
   const submit = async (event) => {
     event.preventDefault();
-    await createRow('quizzes', form);
-    setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', duration_minutes: 30, is_published: false });
-    load();
+    setMessage(null);
+    try {
+      await createRow('quizzes', form);
+      resetForm();
+      setMessage({ type: 'success', text: 'QCM créé avec succès.' });
+      await load();
+    } catch (error) {
+      console.error('Erreur Supabase exacte création QCM:', {
+        form,
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+      setMessage({ type: 'error', text: error.message || 'Impossible de créer le QCM.' });
+    }
   };
+
   const closeImportModal = () => {
     if (importing) return;
     setImportModal(false);
     setImportRows([]);
   };
-  const resetForm = () => {
-    setForm({ title: '', description: '', subject_id: data.subjects[0]?.id || '', pack_id: data.packs[0]?.id || '', duration_minutes: 30, is_published: false });
-  };
+
   const parseImport = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -53,6 +111,7 @@ export default function QuizzesManagement() {
       event.target.value = '';
     }
   };
+
   const confirmImport = async () => {
     const validRows = importRows.filter((row) => !row.errors.length);
     if (!validRows.length) return;
@@ -68,15 +127,28 @@ export default function QuizzesManagement() {
       setImportModal(false);
       setImportRows([]);
       setMessage({ type: 'success', text: 'Questions importées avec succès.' });
-      load();
+      await load();
     } catch (error) {
+      console.error('Erreur Supabase exacte import QCM:', error);
       setMessage({ type: 'error', text: error.message || 'Impossible d’importer les questions.' });
     } finally {
       setImporting(false);
     }
   };
-  if (!data) return <LoadingSpinner />;
+
+  const togglePublish = async (quiz) => {
+    try {
+      await updateRow('quizzes', quiz.id, { is_published: !quiz.is_published });
+      await load();
+    } catch (error) {
+      console.error('Erreur Supabase exacte publication QCM:', error);
+      setMessage({ type: 'error', text: error.message || 'Impossible de modifier le statut du QCM.' });
+    }
+  };
+
+  if (!data) return <LoadingSpinner label="Chargement des données..." />;
   const importErrors = importRows.flatMap((row) => row.errors.map((error) => `Ligne ${row.line} : ${error}`));
+
   return (
     <div>
       {message ? (
@@ -107,9 +179,24 @@ export default function QuizzesManagement() {
           </div>
         </form>
       </Card>
+
+      <Card className="mt-5 p-5">
+        <div className="grid gap-3 md:grid-cols-3">
+          <FormInput label="Recherche" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
+          <select value={filters.subject} onChange={(e) => setFilters({ ...filters, subject: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+            <option value="">Toutes les matières</option>
+            {data.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+          </select>
+          <select value={filters.pack} onChange={(e) => setFilters({ ...filters, pack: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+            <option value="">Tous les packs</option>
+            {data.packs.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
+          </select>
+        </div>
+      </Card>
+
       <div className="mt-6">
         <Table
-          rows={data.quizzes}
+          rows={rows}
           columns={[
             { key: 'title', label: 'Titre' },
             { key: 'duration_minutes', label: 'Durée' },
@@ -120,7 +207,7 @@ export default function QuizzesManagement() {
               render: (row) => (
                 <div className="flex flex-wrap gap-2">
                   <Link to={`/admin/quizzes/${row.id}`}><Button variant="secondary">Modifier</Button></Link>
-                  <Button variant="outline" onClick={() => updateRow('quizzes', row.id, { is_published: !row.is_published }).then(load)}>
+                  <Button variant="outline" onClick={() => togglePublish(row)}>
                     {row.is_published ? 'Désactiver' : 'Publier'}
                   </Button>
                 </div>

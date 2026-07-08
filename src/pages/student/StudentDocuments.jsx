@@ -6,6 +6,7 @@ import Card from '../../components/Card';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import AlertMessage from '../../components/AlertMessage';
+import usePersistedFilters from '../../hooks/usePersistedFilters';
 import { listStudentDocuments, listStudentSubjects } from '../../lib/dataService';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -21,8 +22,7 @@ export default function StudentDocuments() {
   const outletContext = useOutletContext() || {};
   const { activePack } = outletContext;
   const [searchParams] = useSearchParams();
-  const [subject, setSubject] = useState(searchParams.get('subject') || '');
-  const [type, setType] = useState('');
+  const [filters, setFilters] = usePersistedFilters('monprof_student_documents_filters', { subject: searchParams.get('subject') || '', type: '' });
   const [data, setData] = useState(null);
   const [openingAction, setOpeningAction] = useState(null);
   const [message, setMessage] = useState(null);
@@ -33,17 +33,21 @@ export default function StudentDocuments() {
       return;
     }
     Promise.all([listStudentSubjects(activePack.pack_id), listStudentDocuments(activePack.pack_id)])
-      .then(([subjects, documents]) => setData({ subjects, documents }))
+      .then(([subjects, documents]) => {
+        if (import.meta.env.DEV) console.log('données récupérées documents étudiant', { subjects, documents });
+        setData({ subjects, documents });
+      })
       .catch((error) => {
-        console.error('Student documents load failed:', error);
+        console.error('Erreur Supabase exacte documents étudiant:', error);
         setData({ subjects: [], documents: [] });
+        setMessage({ type: 'error', text: error.message || 'Impossible de charger les documents.' });
       });
   }, [activePack?.pack_id]);
 
   const documents = useMemo(() => {
     if (!data) return [];
-    return data.documents.filter((doc) => (!subject || doc.subject_id === subject) && (!type || doc.document_type === type));
-  }, [data, subject, type]);
+    return data.documents.filter((doc) => (!filters.subject || doc.subject_id === filters.subject) && (!filters.type || doc.document_type === filters.type));
+  }, [data, filters]);
 
   const handleOpenDocument = async (doc, action = 'open') => {
     setMessage(null);
@@ -99,7 +103,7 @@ export default function StudentDocuments() {
     }
   };
 
-  if (!data) return <LoadingSpinner label="Chargement des documents..." />;
+  if (!data) return <LoadingSpinner label="Chargement des données..." />;
   return (
     <div>
       <h1 className="text-3xl font-black text-navy">Supports PDF</h1>
@@ -109,11 +113,11 @@ export default function StudentDocuments() {
         </div>
       ) : null}
       <div className="mt-5 grid gap-3 md:grid-cols-2">
-        <select value={subject} onChange={(e) => setSubject(e.target.value)} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+        <select value={filters.subject} onChange={(e) => setFilters({ ...filters, subject: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
           <option value="">Toutes les matières</option>
           {data.subjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
-        <select value={type} onChange={(e) => setType(e.target.value)} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+        <select value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} className="focus-ring rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
           <option value="">Tous les types</option>
           {types.map((item) => <option key={item} value={item}>{typeLabels[item]}</option>)}
         </select>

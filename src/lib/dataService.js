@@ -402,7 +402,7 @@ export const listStudentRecordings = async (activePackId, limit) => {
     }
     let query = supabase
       .from('recordings')
-      .select('id, title, description, subject_id, pack_id, youtube_video_url, youtube_playlist_url, session_date, embed_enabled, is_visible, created_at, subjects(name)')
+      .select('id, title, description, subject_id, pack_id, youtube_video_url, youtube_playlist_url, google_drive_url, session_date, embed_enabled, is_visible, created_at, subjects(name)')
       .eq('is_visible', true)
       .eq('pack_id', activePackId)
       .order('session_date', { ascending: false });

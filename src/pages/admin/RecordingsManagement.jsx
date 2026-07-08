@@ -28,10 +28,19 @@ const emptyForm = {
   pack_id: '',
   youtube_video_url: '',
   youtube_playlist_url: '',
+  google_drive_url: '',
   session_date: '',
   embed_enabled: true,
   is_visible: true,
 };
+
+const allowedVideoPrefixes = [
+  'https://www.youtube.com/',
+  'https://youtu.be/',
+  'https://drive.google.com/',
+];
+
+const isAllowedVideoLink = (url) => !url || allowedVideoPrefixes.some((prefix) => url.startsWith(prefix));
 
 const mapRecordingToForm = (recording) => ({
   title: recording.title || '',
@@ -40,6 +49,7 @@ const mapRecordingToForm = (recording) => ({
   pack_id: recording.pack_id || '',
   youtube_video_url: recording.youtube_video_url || '',
   youtube_playlist_url: recording.youtube_playlist_url || '',
+  google_drive_url: recording.google_drive_url || '',
   session_date: recording.session_date ? recording.session_date.slice(0, 16) : '',
   embed_enabled: recording.embed_enabled !== false,
   is_visible: recording.is_visible !== false,
@@ -98,8 +108,24 @@ export default function RecordingsManagement() {
     event.preventDefault();
     setMessage(null);
 
-    if (!form.title.trim() || !form.subject_id || !form.pack_id || !form.youtube_video_url.trim()) {
+    const videoLinks = [
+      form.youtube_video_url.trim(),
+      form.youtube_playlist_url.trim(),
+      form.google_drive_url.trim(),
+    ];
+
+    if (!form.title.trim() || !form.subject_id || !form.pack_id) {
       setMessage({ type: 'error', text: 'Veuillez remplir tous les champs obligatoires.' });
+      return;
+    }
+
+    if (!videoLinks.some(Boolean)) {
+      setMessage({ type: 'error', text: 'Veuillez renseigner au moins un lien vidéo.' });
+      return;
+    }
+
+    if (!videoLinks.every(isAllowedVideoLink)) {
+      setMessage({ type: 'error', text: 'Le lien doit commencer par https://www.youtube.com/, https://youtu.be/ ou https://drive.google.com/.' });
       return;
     }
 
@@ -110,8 +136,9 @@ export default function RecordingsManagement() {
         description: form.description.trim() || null,
         subject_id: form.subject_id,
         pack_id: form.pack_id,
-        youtube_video_url: form.youtube_video_url.trim(),
+        youtube_video_url: form.youtube_video_url.trim() || null,
         youtube_playlist_url: form.youtube_playlist_url.trim() || null,
+        google_drive_url: form.google_drive_url.trim() || null,
         session_date: form.session_date || null,
         embed_enabled: Boolean(form.embed_enabled),
         is_visible: Boolean(form.is_visible),
@@ -197,8 +224,9 @@ export default function RecordingsManagement() {
       <Card className="mt-5 p-5">
         <form onSubmit={submit} className="grid gap-3 md:grid-cols-3">
           <FormInput label="Titre" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-          <FormInput label="Lien YouTube" type="url" value={form.youtube_video_url} onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })} required />
+          <FormInput label="Lien YouTube" type="url" value={form.youtube_video_url} onChange={(e) => setForm({ ...form, youtube_video_url: e.target.value })} />
           <FormInput label="Lien playlist YouTube optionnel" type="url" value={form.youtube_playlist_url} onChange={(e) => setForm({ ...form, youtube_playlist_url: e.target.value })} />
+          <FormInput label="Lien Google Drive optionnel" type="url" value={form.google_drive_url} onChange={(e) => setForm({ ...form, google_drive_url: e.target.value })} />
           <FormInput label="Date de séance" type="datetime-local" value={form.session_date} onChange={(e) => setForm({ ...form, session_date: e.target.value })} />
           <FormInput label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
 

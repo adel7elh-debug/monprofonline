@@ -10,6 +10,11 @@ import { listStudentRecordings, listStudentSubjects } from '../../lib/dataServic
 import { formatDate } from '../../utils/formatDate';
 import { getYoutubeEmbedUrl } from '../../utils/youtube';
 
+const getRecordingLink = (recording) =>
+  recording.youtube_video_url || recording.youtube_playlist_url || recording.google_drive_url || '';
+
+const isGoogleDriveLink = (url) => url?.startsWith('https://drive.google.com/');
+
 export default function StudentRecordings() {
   const outletContext = useOutletContext() || {};
   const { activePack } = outletContext;
@@ -76,8 +81,9 @@ export default function StudentRecordings() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {recordings.map((recording) => {
-          const videoUrl = recording.youtube_video_url || recording.youtube_playlist_url;
-          const embedUrl = recording.embed_enabled ? getYoutubeEmbedUrl(videoUrl) : null;
+          const videoUrl = getRecordingLink(recording);
+          const isDrive = isGoogleDriveLink(videoUrl);
+          const embedUrl = recording.embed_enabled && !isDrive ? getYoutubeEmbedUrl(videoUrl) : null;
 
           return (
             <Card key={recording.id} className="p-5">
@@ -102,9 +108,15 @@ export default function StudentRecordings() {
               ) : null}
 
               {videoUrl ? (
-                <Button className="mt-4" onClick={() => openVideo(videoUrl)}>
-                  Regarder la vidéo
-                </Button>
+                isDrive ? (
+                  <a href={videoUrl} target="_blank" rel="noopener noreferrer">
+                    <Button className="mt-4">Ouvrir la vidéo</Button>
+                  </a>
+                ) : (
+                  <Button className="mt-4" onClick={() => openVideo(videoUrl)}>
+                    Regarder la vidéo
+                  </Button>
+                )
               ) : null}
             </Card>
           );
